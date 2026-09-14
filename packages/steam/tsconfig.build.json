@@ -8,8 +8,7 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/shared/tsconfig.build.json" },
-    { "path": "../../packages/core/tsconfig.build.json" },
-    { "path": "../../packages/steam/tsconfig.build.json" }
+    { "path": "../shared/tsconfig.build.json" },
+    { "path": "../core/tsconfig.build.json" }
   ]
 }

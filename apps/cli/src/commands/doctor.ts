@@ -1,4 +1,5 @@
 import type { Command } from 'commander';
+import { createLogger } from '@fraglens/shared';
 import { runDoctor, type CheckStatus, type DoctorReport } from '../doctor/checks.js';
 import type { CommandContext, GlobalOptions } from '../program.js';
 import type { Theme } from '../ui/theme.js';
@@ -7,9 +8,15 @@ export function registerDoctorCommand(program: Command, ctx: CommandContext): vo
   program
     .command('doctor')
     .description('Verifica se o ambiente está pronto para usar o FragLens')
-    .action((_options: unknown, command: Command) => {
+    .action(async (_options: unknown, command: Command) => {
       const { json } = command.optsWithGlobals<GlobalOptions>();
-      const report = runDoctor({ env: ctx.env, nodeVersion: ctx.nodeVersion });
+      const logger = createLogger({ level: 'silent' });
+
+      const report = await runDoctor({
+        env: ctx.env,
+        nodeVersion: ctx.nodeVersion,
+        createSteamGateway: (apiKey) => ctx.createSteamGateway(apiKey, logger),
+      });
 
       ctx.io.stdout(
         json ? `${JSON.stringify(report, null, 2)}\n` : renderDoctorReport(report, ctx.theme),

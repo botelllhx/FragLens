@@ -1,4 +1,14 @@
-export type ErrorCode = 'CONFIG_INVALID' | 'INVALID_INPUT' | 'INTERNAL';
+export type ErrorCode =
+  | 'CONFIG_INVALID'
+  | 'CONFIG_MISSING'
+  | 'INVALID_INPUT'
+  | 'NOT_FOUND'
+  | 'UNAUTHORIZED'
+  | 'RATE_LIMITED'
+  | 'TIMEOUT'
+  | 'UPSTREAM_UNAVAILABLE'
+  | 'UPSTREAM_ERROR'
+  | 'INTERNAL';
 
 export interface AppErrorOptions {
   /** Possíveis causas ou próximos passos, exibidos ao usuário. */

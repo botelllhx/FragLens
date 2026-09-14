@@ -1,3 +1,4 @@
+import type { SteamGateway } from '@fraglens/core';
 import { AppError, loadConfig, type Config, type EnvSource } from '@fraglens/shared';
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
@@ -14,13 +15,25 @@ export interface DoctorReport {
   checks: CheckResult[];
 }
 
+export interface DoctorInput {
+  env: EnvSource;
+  nodeVersion: string;
+  createSteamGateway: (apiKey: string) => Pick<SteamGateway, 'getPlayerSummary'>;
+}
+
 export const MIN_NODE_VERSION = '22.18.0';
 
-export function runDoctor(input: { env: EnvSource; nodeVersion: string }): DoctorReport {
+// Qualquer conta existente serve: a consulta só confirma que a chave é aceita e a API responde.
+export const STEAM_PROBE_ID = '76561197960287930';
+
+export async function runDoctor(input: DoctorInput): Promise<DoctorReport> {
   const checks: CheckResult[] = [checkNodeVersion(input.nodeVersion)];
 
   const config = tryLoadConfig(input.env, checks);
-  if (config) checks.push(...checkConfiguredServices(config));
+  if (config) {
+    checks.push(await checkSteamApi(config, input.createSteamGateway));
+    checks.push(...checkOptionalServices(config));
+  }
 
   return { ready: checks.every((check) => check.status !== 'fail'), checks };
 }
@@ -49,18 +62,39 @@ function tryLoadConfig(env: EnvSource, checks: CheckResult[]): Config | undefine
   }
 }
 
-// Por enquanto verifica só se as variáveis existem; os testes de conexão entram nas fases
-// em que cada integração for implementada (Steam: Fase 2, banco: Fase 4, IA: Fase 8).
-function checkConfiguredServices(config: Config): CheckResult[] {
+async function checkSteamApi(
+  config: Config,
+  createSteamGateway: DoctorInput['createSteamGateway'],
+): Promise<CheckResult> {
+  if (!config.steam.apiKey) {
+    return {
+      id: 'steam-api',
+      label: 'Steam API',
+      status: 'warn',
+      detail: 'chave não configurada (STEAM_API_KEY), necessária para consultar perfis',
+    };
+  }
+
+  try {
+    await createSteamGateway(config.steam.apiKey).getPlayerSummary(STEAM_PROBE_ID);
+    return { id: 'steam-api', label: 'Steam API acessível', status: 'ok' };
+  } catch (error) {
+    if (!(error instanceof AppError)) throw error;
+    return {
+      id: 'steam-api',
+      label: 'Steam API',
+      status: 'fail',
+      detail:
+        error.code === 'UNAUTHORIZED'
+          ? 'a chave foi recusada, confira STEAM_API_KEY'
+          : error.message,
+    };
+  }
+}
+
+// Banco (Fase 4) e IA (Fase 8) ainda não têm teste de conexão.
+function checkOptionalServices(config: Config): CheckResult[] {
   return [
-    config.steam.apiKey
-      ? { id: 'steam-key', label: 'Chave da Steam API configurada', status: 'ok' }
-      : {
-          id: 'steam-key',
-          label: 'Chave da Steam API',
-          status: 'warn',
-          detail: 'não configurada (STEAM_API_KEY), necessária para consultar perfis',
-        },
     config.databaseUrl
       ? { id: 'database-url', label: 'Banco de dados configurado', status: 'ok' }
       : {

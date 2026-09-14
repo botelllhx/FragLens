@@ -39,15 +39,15 @@
 
 ### 1.2 Métodos relevantes
 
-| Método                                                   | Uso no FragLens                                | Observações                                                                                                                                                                                             |
-| -------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ISteamUser/ResolveVanityURL/v1` (`vanityurl`)           | Converter `/id/<nome>` → SteamID64             | **[docs]**                                                                                                                                                                                              |
-| `ISteamUser/GetPlayerSummaries/v2` (`steamids`, até 100) | Nome, avatar, URL, visibilidade, último logoff | Aceita **lote** de até 100 IDs — útil no `compare`. **[docs]**                                                                                                                                          |
-| `ISteamUser/GetPlayerBans/v1`                            | VAC / game bans, dias desde o último ban       | **[docs]**                                                                                                                                                                                              |
-| `IPlayerService/GetOwnedGames/v1` (`appids_filter=730`)  | Horas totais de CS2                            | Só se os detalhes de jogos forem públicos **[docs]**                                                                                                                                                    |
-| `IPlayerService/GetRecentlyPlayedGames/v1`               | Horas de CS2 nas últimas 2 semanas             | Depende da privacidade **[docs]**                                                                                                                                                                       |
-| `ISteamUserStats/GetUserStatsForGame/v2` (`appid=730`)   | **Não confiável no CS2**                       | Vários relatos de resposta vazia no CS2; são contadores legados **[terceiros]**. Testar uma vez, nunca usar como fonte principal.                                                                       |
-| `ICSGOPlayers_730/GetNextMatchSharingCode/v1`            | Percorrer share codes de um jogador            | Exige o **código de autenticação do próprio jogador** + share code conhecido de **até 1 mês**. Cobre Competitivo, Wingman e Premier. Retorna **só share codes, não estatísticas**. **[docs/terceiros]** |
+| Método                                                     | Uso no FragLens                                        | Observações                                                                                                                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ISteamUser/ResolveVanityURL/v1` (`vanityurl`)             | Converter `/id/<nome>` → SteamID64                     | **[docs]**                                                                                                                                                                                              |
+| `ISteamUser/GetPlayerSummaries/v2` (`steamids`, até 100)   | Nome, avatar, URL, visibilidade, país, data de criação | Aceita **lote** de até 100 IDs — útil no `compare`. País e data de criação só em perfis públicos; `lastlogoff` não vem mais na resposta **[verificado]**                                                |
+| `ISteamUser/GetPlayerBans/v1`                              | VAC / game bans, dias desde o último ban               | **[docs]**                                                                                                                                                                                              |
+| `IPlayerService/GetOwnedGames/v1` (`appids_filter[0]=730`) | Horas totais e das últimas 2 semanas de CS2            | Traz `playtime_forever` e `playtime_2weeks` (minutos). Retorna `{}` quando os detalhes de jogos não são públicos — o caso da maioria dos perfis testados **[verificado]**                               |
+| `IPlayerService/GetRecentlyPlayedGames/v1`                 | Não usado                                              | `GetOwnedGames` já traz as horas das últimas 2 semanas **[verificado]**                                                                                                                                 |
+| `ISteamUserStats/GetUserStatsForGame/v2` (`appid=730`)     | **Não usado**                                          | Retornou `HTTP 400 {}` para perfil público **[verificado]**; relatos de resposta vazia no CS2 **[terceiros]**.                                                                                          |
+| `ICSGOPlayers_730/GetNextMatchSharingCode/v1`              | Percorrer share codes de um jogador                    | Exige o **código de autenticação do próprio jogador** + share code conhecido de **até 1 mês**. Cobre Competitivo, Wingman e Premier. Retorna **só share codes, não estatísticas**. **[docs/terceiros]** |
 
 ### 1.3 O que a Steam NÃO fornece
 
@@ -69,6 +69,18 @@
 O endpoint legado `steamcommunity.com/id/<vanity>/?xml=1` ainda funciona sem chave **[verificado]**, mas não é documentado. Decisão: **não usar**; somente `ResolveVanityURL` oficial.
 
 O resolver **nunca** acessa URLs arbitrárias informadas pelo usuário: apenas interpreta localmente o host `steamcommunity.com` e chama endpoints fixos da Steam (proteção contra SSRF).
+
+### 1.5 Comportamentos confirmados na Fase 2 **[verificado em 14/09/2026]**
+
+| Situação                                | Resposta real                                                                     |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `ResolveVanityURL` encontrado           | `{"response":{"steamid":"…","success":1}}`                                        |
+| `ResolveVanityURL` inexistente          | `{"response":{"success":42,"message":"No match"}}` (HTTP 200)                     |
+| `GetPlayerSummaries` com ID inexistente | `{"response":{"players":[]}}` (HTTP 200)                                          |
+| `communityvisibilitystate`              | `1` privado · `2` somente amigos · `3` público                                    |
+| Chave inválida                          | HTTP 403, corpo HTML: "Access is denied. Retrying will not help." → nunca repetir |
+| `GetPlayerBans` sem banimentos          | `DaysSinceLastBan: 0` → tratado como "sem banimento", não "banido hoje"           |
+| Headers de rate limit                   | Nenhum header de limite é retornado                                               |
 
 ---
 
@@ -297,8 +309,8 @@ fraglens/
 ├── packages/
 │   ├── shared/         # config (env com Zod), logger (pino), erros, cliente HTTP (limitador/retry/breaker)
 │   ├── contracts/      # schemas Zod + tipos de requisição/resposta (CLI, API, futuro MCP/dashboard)
-│   ├── core/           # tipos de domínio, portas, serviços de aplicação
-│   ├── steam/          # SteamIdentifierResolver + cliente Steam Web API
+│   ├── core/           # tipos de domínio, portas, SteamIdentifierResolver, serviços de aplicação
+│   ├── steam/          # cliente Steam Web API (implementa a porta SteamGateway)
 │   ├── sources/        # adaptadores MatchDataSource: leetify/
 │   ├── analysis/       # motor de métricas e tendências (puro)
 │   ├── ai/             # AIProvider: none + provedores reais (Fase 8)

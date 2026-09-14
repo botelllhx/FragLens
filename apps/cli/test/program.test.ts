@@ -1,28 +1,7 @@
+import { AppError } from '@fraglens/shared';
 import { describe, expect, it } from 'vitest';
 import type { DoctorReport } from '../src/doctor/checks.js';
-import { run, type CliDeps } from '../src/program.js';
-
-async function runCli(args: string[], overrides: Partial<CliDeps> = {}) {
-  let stdout = '';
-  let stderr = '';
-  const exitCode = await run(['node', 'fraglens', ...args], {
-    io: {
-      stdout: (text) => {
-        stdout += text;
-      },
-      stderr: (text) => {
-        stderr += text;
-      },
-    },
-    env: {},
-    version: '1.2.3',
-    nodeVersion: '22.18.0',
-    colorsEnabled: false,
-    unicode: true,
-    ...overrides,
-  });
-  return { exitCode, stdout, stderr };
-}
+import { fakeGateway, runCli } from './helpers.js';
 
 describe('fraglens (argumentos)', () => {
   it('exibe a ajuda em português', async () => {
@@ -32,6 +11,7 @@ describe('fraglens (argumentos)', () => {
     expect(stdout).toContain('Uso: fraglens [opções] [comando]');
     expect(stdout).toContain('Opções:');
     expect(stdout).toContain('Comandos:');
+    expect(stdout).toContain('profile <jogador>');
     expect(stdout).toContain('doctor');
   });
 
@@ -56,16 +36,44 @@ describe('fraglens (argumentos)', () => {
     expect(exitCode).toBe(2);
     expect(stderr).toContain("erro: opção desconhecida '--nao-existe'");
   });
+
+  it('informa argumento obrigatório ausente', async () => {
+    const { exitCode, stderr } = await runCli(['profile']);
+
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("erro: argumento obrigatório ausente 'jogador'");
+  });
 });
 
 describe('fraglens doctor', () => {
-  it('lista as verificações com símbolos e avisos', async () => {
+  it('confirma o acesso à Steam API e lista os avisos', async () => {
     const { exitCode, stdout } = await runCli(['doctor']);
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain('✓ Node.js 22.18.0');
-    expect(stdout).toContain('⚠ Chave da Steam API');
+    expect(stdout).toContain('✓ Steam API acessível');
+    expect(stdout).toContain('⚠ Banco de dados');
     expect(stdout).toContain('Sistema pronto, com avisos.');
+  });
+
+  it('avisa quando a chave da Steam não está configurada', async () => {
+    const { exitCode, stdout } = await runCli(['doctor'], { env: {} });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('⚠ Steam API — chave não configurada (STEAM_API_KEY)');
+  });
+
+  it('falha quando a Steam recusa a chave', async () => {
+    const { exitCode, stdout } = await runCli(['doctor'], {
+      createSteamGateway: () =>
+        fakeGateway({
+          getPlayerSummary: () =>
+            Promise.reject(new AppError('UNAUTHORIZED', 'Steam: a chave de API foi recusada.')),
+        }),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain('✗ Steam API — a chave foi recusada, confira STEAM_API_KEY');
   });
 
   it('usa símbolos ASCII em terminais sem suporte a unicode', async () => {
@@ -76,15 +84,13 @@ describe('fraglens doctor', () => {
   });
 
   it('com --json escreve apenas JSON válido no stdout', async () => {
-    const { exitCode, stdout, stderr } = await runCli(['doctor', '--json'], {
-      env: { STEAM_API_KEY: 'chave' },
-    });
+    const { exitCode, stdout, stderr } = await runCli(['doctor', '--json']);
 
     const report = JSON.parse(stdout) as DoctorReport;
     expect(exitCode).toBe(0);
     expect(stderr).toBe('');
     expect(report.ready).toBe(true);
-    expect(report.checks.find((check) => check.id === 'steam-key')?.status).toBe('ok');
+    expect(report.checks.find((check) => check.id === 'steam-api')?.status).toBe('ok');
   });
 
   it('falha quando a versão do Node é antiga', async () => {

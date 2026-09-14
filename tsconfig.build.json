@@ -2,6 +2,8 @@
   "files": [],
   "references": [
     { "path": "packages/shared/tsconfig.build.json" },
+    { "path": "packages/core/tsconfig.build.json" },
+    { "path": "packages/steam/tsconfig.build.json" },
     { "path": "apps/cli/tsconfig.build.json" },
     { "path": "apps/api/tsconfig.build.json" }
   ]

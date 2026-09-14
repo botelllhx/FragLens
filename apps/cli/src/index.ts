@@ -2,6 +2,7 @@
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 import { loadEnvFile } from '@fraglens/shared';
+import { SteamWebApiClient } from '@fraglens/steam';
 import { processIo } from './io.js';
 import { run } from './program.js';
 import { supportsUnicode } from './ui/theme.js';
@@ -18,4 +19,5 @@ process.exitCode = await run(process.argv, {
   nodeVersion: process.versions.node,
   colorsEnabled: pc.isColorSupported,
   unicode: supportsUnicode(),
+  createSteamGateway: (apiKey, logger) => new SteamWebApiClient({ apiKey, logger }),
 });

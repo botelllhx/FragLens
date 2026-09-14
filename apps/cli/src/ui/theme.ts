@@ -8,6 +8,7 @@ export interface Symbols {
   fail: string;
   bullet: string;
   dash: string;
+  rule: string;
 }
 
 export interface Theme {
@@ -15,8 +16,22 @@ export interface Theme {
   symbols: Symbols;
 }
 
-const UNICODE_SYMBOLS: Symbols = { ok: '✓', warn: '⚠', fail: '✗', bullet: '•', dash: '—' };
-const ASCII_SYMBOLS: Symbols = { ok: '[ok]', warn: '[!]', fail: '[x]', bullet: '*', dash: '-' };
+const UNICODE_SYMBOLS: Symbols = {
+  ok: '✓',
+  warn: '⚠',
+  fail: '✗',
+  bullet: '•',
+  dash: '—',
+  rule: '─',
+};
+const ASCII_SYMBOLS: Symbols = {
+  ok: '[ok]',
+  warn: '[!]',
+  fail: '[x]',
+  bullet: '*',
+  dash: '-',
+  rule: '-',
+};
 
 export function createTheme(options: { colorsEnabled: boolean; unicode: boolean }): Theme {
   return {

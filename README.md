@@ -8,7 +8,7 @@ O FragLens analisa jogadores de CS2 a partir de uma Steam ID ou URL de perfil: b
 fraglens analyze https://steamcommunity.com/id/usuario
 ```
 
-> **Status:** em desenvolvimento — **Fase 1 (bootstrap) concluída**. Os comandos de análise ainda não existem; veja o [roadmap](#15-roadmap).
+> **Status:** em desenvolvimento — **Fase 2 concluída** (`fraglens profile`). Os comandos de análise ainda não existem; veja o [roadmap](#15-roadmap).
 
 ---
 
@@ -52,19 +52,19 @@ CLI ───────┐
 API ───────┘
 ```
 
-| Pacote               | Responsabilidade                     | Status                |
-| -------------------- | ------------------------------------ | --------------------- |
-| `apps/cli`           | Comando `fraglens` (Commander)       | Esqueleto + `doctor`  |
-| `apps/api`           | API HTTP (Fastify)                   | Esqueleto + `/health` |
-| `packages/shared`    | Configuração, logs, erros            | ✅                    |
-| `packages/contracts` | Schemas compartilhados CLI/API       | Fase 9                |
-| `packages/core`      | Serviços de domínio                  | Fase 2+               |
-| `packages/steam`     | Resolver de Steam ID e cliente Steam | Fase 2                |
-| `packages/sources`   | Adaptador Leetify                    | Fase 3                |
-| `packages/db`        | Prisma 7 + PostgreSQL                | Fase 4                |
-| `packages/analysis`  | Motor de métricas                    | Fase 5                |
-| `packages/demos`     | Parser de demos                      | Fase 6                |
-| `packages/ai`        | Provedores de IA                     | Fase 8                |
+| Pacote               | Responsabilidade                                   | Status                  |
+| -------------------- | -------------------------------------------------- | ----------------------- |
+| `apps/cli`           | Comando `fraglens` (Commander)                     | `profile`, `doctor`     |
+| `apps/api`           | API HTTP (Fastify)                                 | Esqueleto + `/health`   |
+| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente | ✅                      |
+| `packages/contracts` | Schemas compartilhados CLI/API                     | Fase 9                  |
+| `packages/core`      | Domínio: resolver de Steam ID, serviço de perfil   | ✅ (cresce a cada fase) |
+| `packages/steam`     | Cliente da Steam Web API                           | ✅                      |
+| `packages/sources`   | Adaptador Leetify                                  | Fase 3                  |
+| `packages/db`        | Prisma 7 + PostgreSQL                              | Fase 4                  |
+| `packages/analysis`  | Motor de métricas                                  | Fase 5                  |
+| `packages/demos`     | Parser de demos                                    | Fase 6                  |
+| `packages/ai`        | Provedores de IA                                   | Fase 8                  |
 
 Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md) e [docs/decisions/](docs/decisions/).
 
@@ -125,40 +125,65 @@ pnpm dev:api
 
 ## 7. Usando a CLI
 
-Disponível hoje:
+Disponível hoje (a partir do código-fonte, use `pnpm dev:cli` no lugar de `fraglens`):
 
 ```bash
-fraglens --help        # ajuda
-fraglens --version     # versão
-fraglens doctor        # diagnóstico do ambiente
-fraglens doctor --json # diagnóstico em JSON
+fraglens profile 76561198012345678                        # por SteamID64
+fraglens profile https://steamcommunity.com/id/usuario    # por URL
+fraglens profile usuario --json                           # por nome, em JSON
+fraglens doctor                                           # diagnóstico do ambiente
+fraglens --help                                           # ajuda
 ```
 
-Exemplo:
+Exemplo de `fraglens profile`:
 
 ```text
-FRAGLENS · DIAGNÓSTICO
+FRAGLENS
+Inteligência de jogadores de Counter-Strike 2
 
-✓ Node.js 22.18.0
-✓ Configuração
-✓ Chave da Steam API configurada
-✓ Banco de dados configurado
-⚠ Chave da Leetify — não configurada (LEETIFY_API_KEY), funciona sem chave, com limites menores
-⚠ Provedor de IA — não configurado, as análises serão geradas sem IA
+────────────────────────────────────────────────
 
-Sistema pronto, com avisos.
+JOGADOR
+
+Jogador
+
+SteamID64     76561198012345678
+Perfil        https://steamcommunity.com/id/usuario/
+Visibilidade  Público
+País          Brasil
+Conta criada  27/11/2010
+
+────────────────────────────────────────────────
+
+CS2
+
+Horas totais       1.523,5 h
+Últimas 2 semanas  18,2 h
+
+────────────────────────────────────────────────
+
+BANIMENTOS
+
+✓ Nenhum banimento registrado
+
+────────────────────────────────────────────────
+Dados da Steam obtidos em 14/09/2026, 14:37
 ```
+
+Formatos de jogador aceitos: SteamID64, `STEAM_0:X:Y`, `[U:1:Z]`, URL `/profiles/`, URL `/id/` e o nome da URL personalizada. URLs de outros sites são recusadas.
 
 Opções globais:
 
-| Opção       | Efeito                                                           |
-| ----------- | ---------------------------------------------------------------- |
-| `--json`    | Escreve somente JSON no stdout (logs e avisos vão para o stderr) |
-| `--verbose` | Exibe detalhes técnicos em caso de erro                          |
+| Opção       | Efeito                                                             |
+| ----------- | ------------------------------------------------------------------ |
+| `--json`    | Escreve somente JSON no stdout, inclusive erros                    |
+| `--verbose` | Exibe logs de processamento e detalhes técnicos de erros no stderr |
 
 Códigos de saída: `0` sucesso · `1` falha · `2` uso incorreto.
 
-Comandos planejados: `analyze`, `profile`, `matches`, `maps`, `progress`, `compare`, `refresh`, `cache`, `config` — ver [roadmap](#15-roadmap).
+Referência completa: [docs/cli.md](docs/cli.md).
+
+Comandos planejados: `analyze`, `matches`, `maps`, `progress`, `compare`, `refresh`, `cache`, `config` — ver [roadmap](#15-roadmap).
 
 ## 8. Executando a API
 
@@ -253,7 +278,7 @@ Ferramentas de desenvolvimento (TypeScript: Apache-2.0; ESLint, Prettier, Vitest
 | ---- | ------------------------------------------------------------- | ------ |
 | 0    | Pesquisa técnica                                              | ✅     |
 | 1    | Bootstrap: monorepo, TypeScript, lint, testes, Docker, README | ✅     |
-| 2    | Resolver de Steam ID + `fraglens profile`                     | ⏳     |
+| 2    | Resolver de Steam ID + `fraglens profile`                     | ✅     |
 | 3    | Integração Leetify + `fraglens matches`                       | ⏳     |
 | 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ⏳     |
 | 5    | Motor de métricas determinísticas                             | ⏳     |

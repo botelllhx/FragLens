@@ -7,9 +7,5 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": ["src"],
-  "references": [
-    { "path": "../../packages/shared/tsconfig.build.json" },
-    { "path": "../../packages/core/tsconfig.build.json" },
-    { "path": "../../packages/steam/tsconfig.build.json" }
-  ]
+  "references": [{ "path": "../shared/tsconfig.build.json" }]
 }

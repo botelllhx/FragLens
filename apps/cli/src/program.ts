@@ -1,10 +1,14 @@
 import { Command, CommanderError, Help } from 'commander';
-import type { EnvSource } from '@fraglens/shared';
+import type { SteamGateway } from '@fraglens/core';
+import type { EnvSource, Logger } from '@fraglens/shared';
 import { registerDoctorCommand } from './commands/doctor.js';
+import { registerProfileCommand } from './commands/profile.js';
 import { translateCommanderMessage, translateHelp } from './i18n.js';
 import type { CliIo } from './io.js';
 import { errorToJson, renderError } from './ui/errors.js';
 import { createTheme, type Theme } from './ui/theme.js';
+
+export type SteamGatewayFactory = (apiKey: string, logger: Logger) => SteamGateway;
 
 export interface CliDeps {
   io: CliIo;
@@ -13,6 +17,9 @@ export interface CliDeps {
   nodeVersion: string;
   colorsEnabled: boolean;
   unicode: boolean;
+  createSteamGateway: SteamGatewayFactory;
+  /** Fuso horário para exibir datas; padrão: o do sistema. */
+  timeZone?: string;
 }
 
 export interface GlobalOptions {
@@ -50,6 +57,7 @@ export function createProgram(ctx: CommandContext): Command {
     .showHelpAfterError('Use "fraglens --help" para ver os comandos disponíveis.')
     .exitOverride();
 
+  registerProfileCommand(program, ctx);
   registerDoctorCommand(program, ctx);
   return program;
 }
