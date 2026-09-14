@@ -1,6 +1,6 @@
 import { InvalidArgumentError, type Command } from 'commander';
 import type { CommandContext, GlobalOptions } from '../program.js';
-import { createLocalServices } from '../services.js';
+import { withLocalServices } from '../services.js';
 import { renderMatchHistory } from '../ui/matches.js';
 
 const DEFAULT_LIMIT = 20;
@@ -24,9 +24,9 @@ export function registerMatchesCommand(program: Command, ctx: CommandContext): v
     )
     .action(async (player: string, options: { limit: number }, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
-      const services = createLocalServices(ctx, { verbose: verbose === true });
-
-      const history = await services.matches.getMatchHistory(player, { limit: options.limit });
+      const history = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+        services.matches.getMatchHistory(player, { limit: options.limit }),
+      );
 
       ctx.io.stdout(
         json

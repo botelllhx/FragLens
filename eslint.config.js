@@ -3,7 +3,7 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**'] },
+  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '**/src/generated/**'] },
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {
@@ -20,8 +20,8 @@ export default defineConfig(
     },
   },
   {
-    // Arquivos de configuração da raiz não pertencem a nenhum tsconfig.
-    files: ['*.config.{js,ts}'],
+    // Arquivos de configuração não pertencem a nenhum tsconfig.
+    files: ['*.config.{js,ts}', '**/prisma.config.ts'],
     extends: [tseslint.configs.disableTypeChecked],
   },
 );

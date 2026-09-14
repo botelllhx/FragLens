@@ -1,0 +1,97 @@
+// Schema do FragLens. Documentação: docs/database.md
+//
+// Só dados próprios são persistidos. Dados da Leetify nunca são gravados
+// (docs/decisions/0001-leetify-fonte-ao-vivo.md).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  FRIENDS_ONLY
+  PRIVATE
+}
+
+enum SyncJobType {
+  STEAM_PROFILE
+}
+
+enum SyncJobStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+/// Jogador consultado ao menos uma vez.
+model Player {
+  id        String   @id @default(uuid()) @db.Uuid
+  steamId64 String   @unique @map("steam_id64") @db.VarChar(17)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  profileSnapshots SteamProfileSnapshot[]
+  syncJobs         SyncJob[]
+
+  @@map("players")
+}
+
+/// Foto do perfil Steam no momento da busca. O registro mais recente serve de cache;
+/// os anteriores formam o histórico (nome, horas e banimentos ao longo do tempo).
+model SteamProfileSnapshot {
+  id       String @id @default(uuid()) @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  personaName      String            @map("persona_name")
+  profileUrl       String            @map("profile_url")
+  avatarUrl        String            @map("avatar_url")
+  visibility       ProfileVisibility
+  countryCode      String?           @map("country_code") @db.VarChar(8)
+  accountCreatedAt DateTime?         @map("account_created_at") @db.Timestamptz(3)
+
+  cs2PlaytimeVisible   Boolean @map("cs2_playtime_visible")
+  cs2TotalHours        Float?  @map("cs2_total_hours")
+  cs2LastTwoWeeksHours Float?  @map("cs2_last_two_weeks_hours")
+
+  /// Colunas de banimento nulas = a Steam não retornou dados de banimento.
+  vacBanned        Boolean? @map("vac_banned")
+  vacBanCount      Int?     @map("vac_ban_count")
+  gameBanCount     Int?     @map("game_ban_count")
+  communityBanned  Boolean? @map("community_banned")
+  economyBan       String?  @map("economy_ban") @db.VarChar(32)
+  daysSinceLastBan Int?     @map("days_since_last_ban")
+
+  /// Versão do formato do perfil; snapshots de versões antigas não são usados como cache.
+  dataVersion Int      @map("data_version")
+  fetchedAt   DateTime @map("fetched_at") @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([playerId, fetchedAt(sort: Desc)])
+  @@map("steam_profile_snapshots")
+}
+
+/// Registro de cada sincronização com fontes externas. Prepara a migração para jobs assíncronos.
+model SyncJob {
+  id       String @id @default(uuid()) @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  type         SyncJobType
+  status       SyncJobStatus
+  errorCode    String?       @map("error_code") @db.VarChar(64)
+  errorMessage String?       @map("error_message") @db.VarChar(500)
+  startedAt    DateTime      @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt   DateTime?     @map("finished_at") @db.Timestamptz(3)
+
+  @@index([playerId, startedAt(sort: Desc)])
+  @@index([status])
+  @@map("sync_jobs")
+}

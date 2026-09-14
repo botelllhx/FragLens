@@ -2,10 +2,14 @@ import type {
   PerformanceData,
   PerformanceSource,
   PlayerMatch,
+  PlayerProfile,
+  PlayerStore,
   SteamBanStatus,
   SteamGateway,
   SteamPlayerSummary,
+  SyncJobResult,
 } from '@fraglens/core';
+import type { Database } from '@fraglens/db';
 import { run, type CliDeps } from '../src/program.js';
 
 export const STEAM_ID = '76561198034202275';
@@ -113,6 +117,67 @@ export function fakePerformance(data: PerformanceData | null): PerformanceSource
   return { getPlayerPerformance: () => Promise.resolve(data) };
 }
 
+/** Banco em memória com o mesmo contrato do PrismaPlayerStore. */
+export function memoryPlayerStore() {
+  const profiles: PlayerProfile[] = [];
+  const jobs: { id: string; steamId64: string; startedAt: string; result: SyncJobResult | null }[] =
+    [];
+
+  const store: PlayerStore = {
+    findLatestProfile: (steamId64) => {
+      const latest = profiles.filter((profile) => profile.steamId64 === steamId64).at(-1);
+      return Promise.resolve(latest ? { profile: latest, dataVersion: latest.dataVersion } : null);
+    },
+    saveProfile: (profile) => {
+      profiles.push(profile);
+      return Promise.resolve();
+    },
+    getCacheInfo: (steamId64) => {
+      const own = profiles.filter((profile) => profile.steamId64 === steamId64);
+      const job = jobs.filter((candidate) => candidate.steamId64 === steamId64).at(-1);
+      if (own.length === 0 && !job) return Promise.resolve(null);
+      const latest = own.at(-1);
+      return Promise.resolve({
+        steamId64,
+        firstSeenAt: job?.startedAt ?? latest?.fetchedAt ?? '',
+        snapshotCount: own.length,
+        latestFetchedAt: latest?.fetchedAt ?? null,
+        latestDataVersion: latest?.dataVersion ?? null,
+        lastSyncJob: job
+          ? {
+              type: 'steam-profile',
+              status: job.result?.status ?? 'running',
+              startedAt: job.startedAt,
+              finishedAt: job.result ? job.startedAt : null,
+              errorCode: job.result?.status === 'failed' ? job.result.errorCode : null,
+            }
+          : null,
+      });
+    },
+    startSyncJob: (steamId64) => {
+      const id = `job-${jobs.length + 1}`;
+      jobs.push({ id, steamId64, startedAt: new Date().toISOString(), result: null });
+      return Promise.resolve(id);
+    },
+    finishSyncJob: (id, result) => {
+      const job = jobs.find((candidate) => candidate.id === id);
+      if (job) job.result = result;
+      return Promise.resolve();
+    },
+  };
+
+  return { store, profiles, jobs };
+}
+
+export function fakeDatabase(overrides: Partial<Database> = {}): Database {
+  return {
+    players: memoryPlayerStore().store,
+    checkHealth: () => Promise.resolve({ appliedMigrations: 1, pendingMigrations: [] }),
+    close: () => Promise.resolve(),
+    ...overrides,
+  };
+}
+
 /** Executa a CLI em memória, sem terminal, rede ou arquivo .env. */
 export async function runCli(args: string[], overrides: Partial<CliDeps> = {}) {
   let stdout = '';
@@ -133,6 +198,7 @@ export async function runCli(args: string[], overrides: Partial<CliDeps> = {}) {
     unicode: true,
     createSteamGateway: () => fakeGateway(),
     createPerformanceSource: () => fakePerformance(performanceData([])),
+    connectDatabase: () => fakeDatabase(),
     timeZone: 'UTC',
     ...overrides,
   });

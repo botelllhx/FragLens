@@ -20,7 +20,17 @@ export {
   type MatchQuery,
   type MatchServiceDeps,
 } from './match-service.js';
-export type { PerformanceSource, SteamGateway } from './ports.js';
+export type {
+  PerformanceSource,
+  PlayerStore,
+  ProfileCacheInfo,
+  SteamGateway,
+  StoredProfile,
+  SyncJobResult,
+  SyncJobStatus,
+  SyncJobSummary,
+  SyncJobType,
+} from './ports.js';
 export type {
   Cs2Playtime,
   PlayerProfile,
@@ -28,5 +38,13 @@ export type {
   SteamBanStatus,
   SteamPlayerSummary,
 } from './profile.js';
-export { ProfileService, type ProfileServiceDeps } from './profile-service.js';
+export {
+  DEFAULT_PROFILE_CACHE_TTL_SECONDS,
+  PROFILE_DATA_VERSION,
+  ProfileService,
+  type ProfileCacheStatus,
+  type ProfileQuery,
+  type ProfileServiceDeps,
+  type RefreshResult,
+} from './profile-service.js';
 export { parseSteamIdentifier, type SteamIdentifier } from './steam-id.js';

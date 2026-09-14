@@ -23,11 +23,11 @@ fraglens profile usuario --json > perfil.json
 
 ## Códigos de saída
 
-| Código | Significado                                                                                                  |
-| ------ | ------------------------------------------------------------------------------------------------------------ |
-| `0`    | Sucesso                                                                                                      |
-| `1`    | Falha (jogador não encontrado, Steam ou Leetify indisponível, configuração inválida, `doctor` com problemas) |
-| `2`    | Uso incorreto (comando ou opção desconhecidos, argumento ausente)                                            |
+| Código | Significado                                                                                                                                          |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`    | Sucesso                                                                                                                                              |
+| `1`    | Falha (jogador não encontrado, Steam ou Leetify indisponível, configuração inválida, banco inacessível em `refresh`/`cache`, `doctor` com problemas) |
+| `2`    | Uso incorreto (comando ou opção desconhecidos, argumento ausente)                                                                                    |
 
 ## `fraglens profile <jogador>`
 
@@ -46,9 +46,15 @@ Formatos aceitos para `<jogador>`:
 
 URLs de qualquer outro domínio são recusadas sem nenhuma requisição.
 
+| Opção       | Efeito                                             |
+| ----------- | -------------------------------------------------- |
+| `--refresh` | Ignora o cache e busca os dados novamente na Steam |
+
 Requer `STEAM_API_KEY` no `.env`.
 
-Chamadas à Steam por execução: até 4 (resolução do nome, perfil, banimentos e horas), com as três últimas em paralelo.
+**Cache:** com `DATABASE_URL` configurado, o perfil é guardado no banco e reaproveitado por `STEAM_PROFILE_CACHE_TTL` segundos (padrão 24 h). Nesse caso o rodapé mostra "(cache)". Se o banco estiver fora do ar, o comando funciona normalmente buscando na Steam. Detalhes em [database.md](database.md#cache-do-perfil-steam).
+
+Chamadas à Steam por execução: nenhuma com cache válido (exceto a resolução de nome de usuário); sem cache, até 4 (resolução do nome, perfil, banimentos e horas), com as três últimas em paralelo.
 
 ### Saída JSON
 
@@ -73,6 +79,8 @@ Chamadas à Steam por execução: até 4 (resolução do nome, perfil, banimento
     "daysSinceLastBan": null
   },
   "cs2": { "visible": true, "totalHours": 1523.5, "lastTwoWeeksHours": 18.2 },
+  "dataVersion": 1,
+  "cached": false,
   "fetchedAt": "2026-09-14T17:37:39.354Z"
 }
 ```
@@ -84,6 +92,9 @@ Chamadas à Steam por execução: até 4 (resolução do nome, perfil, banimento
 | `bans`                                            | `null` se a Steam não retornar dados de banimento                                          |
 | `bans.daysSinceLastBan`                           | `null` quando não há banimento VAC ou de jogo                                              |
 | `cs2.visible`                                     | `false` quando os detalhes de jogos do perfil são privados; nesse caso as horas são `null` |
+| `cached`                                          | `true` quando o perfil veio do banco em vez da Steam                                       |
+| `fetchedAt`                                       | Quando os dados foram obtidos da Steam (em um perfil do cache, a data da busca original)   |
+| `dataVersion`                                     | Versão do formato do perfil; perfis guardados em versões antigas não são usados como cache |
 
 ## `fraglens matches <jogador>`
 
@@ -183,18 +194,75 @@ Principais campos:
   • O perfil na Leetify também pode estar configurado como privado.
 ```
 
+## `fraglens refresh <jogador>`
+
+Busca o perfil na Steam e grava no banco, ignorando o cache. **Requer `DATABASE_URL`.**
+
+```text
+✓ Perfil Steam de Jogador atualizado em 14/09/2026, 15:29.
+Dados da Leetify não são guardados: são buscados a cada consulta.
+```
+
+- Se o perfil foi obtido mas não pôde ser gravado (banco fora do ar), exibe um aviso no stderr e sai com código `1`.
+- Com `--json`: `{"profile": {...}, "saved": true}`.
+
+## `fraglens cache <jogador>`
+
+Mostra o que está guardado no banco para o jogador. **Requer `DATABASE_URL`.** Não consulta a Steam (exceto para resolver nome de usuário).
+
+```text
+FRAGLENS · CACHE
+
+SteamID64            76561198012345678
+Situação             ✓ Atualizado
+Última atualização   14/09/2026, 15:29 (há 21 min)
+Validade do cache    24 h
+Expira em            15/09/2026, 15:29
+Snapshots guardados  3
+Primeira consulta    14/09/2026, 15:02
+
+Última sincronização
+✓ Perfil Steam: concluída em 14/09/2026, 15:29
+```
+
+Situações possíveis: **Atualizado**, **Expirado** (será buscado de novo na próxima consulta) ou **Formato antigo** (guardado em versão anterior do formato).
+
+Com `--json`:
+
+```json
+{
+  "steamId64": "76561198012345678",
+  "stored": true,
+  "snapshotCount": 3,
+  "firstSeenAt": "2026-09-14T18:02:00.000Z",
+  "lastFetchedAt": "2026-09-14T18:29:29.667Z",
+  "dataVersion": 1,
+  "currentDataVersion": 1,
+  "ttlSeconds": 86400,
+  "expiresAt": "2026-09-15T18:29:29.667Z",
+  "fresh": true,
+  "lastSyncJob": {
+    "type": "steam-profile",
+    "status": "succeeded",
+    "startedAt": "2026-09-14T18:29:29.100Z",
+    "finishedAt": "2026-09-14T18:29:29.700Z",
+    "errorCode": null
+  }
+}
+```
+
 ## `fraglens doctor`
 
 Verifica o ambiente:
 
-| Verificação    | Resultado                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| Node.js        | Falha abaixo da versão 22.18.0                                                               |
-| Configuração   | Falha se alguma variável do `.env` for inválida                                              |
-| Steam API      | Faz uma consulta real: OK, aviso (sem chave) ou falha (chave recusada ou Steam indisponível) |
-| Banco de dados | Aviso se `DATABASE_URL` não estiver definido (teste de conexão na Fase 4)                    |
-| Leetify        | Aviso se não houver chave (a API funciona sem ela)                                           |
-| Provedor de IA | Aviso enquanto não houver provedor (Fase 8)                                                  |
+| Verificação    | Resultado                                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| Node.js        | Falha abaixo da versão 22.18.0                                                                              |
+| Configuração   | Falha se alguma variável do `.env` for inválida                                                             |
+| Steam API      | Faz uma consulta real: OK, aviso (sem chave) ou falha (chave recusada ou Steam indisponível)                |
+| Banco de dados | Conecta e compara migrations: OK, aviso (sem `DATABASE_URL`) ou falha (sem conexão ou migrations pendentes) |
+| Leetify        | Aviso se não houver chave (a API funciona sem ela)                                                          |
+| Provedor de IA | Aviso enquanto não houver provedor (Fase 8)                                                                 |
 
 Com `--json`, retorna `{"ready": boolean, "checks": [{"id","label","status","detail"}]}`.
 
@@ -213,7 +281,8 @@ Erros são exibidos em português, com possíveis causas:
 | ----------------------------------- | ------------------------------------------------------------------------------------------- |
 | `INVALID_INPUT`                     | Jogador em formato não reconhecido, URL de outro site ou limite de partidas fora de 1 a 100 |
 | `NOT_FOUND`                         | Nome ou SteamID64 sem conta; ou jogador sem dados na Leetify                                |
-| `CONFIG_MISSING` / `CONFIG_INVALID` | Chave ausente ou `.env` inválido                                                            |
+| `CONFIG_MISSING` / `CONFIG_INVALID` | Chave ausente, `DATABASE_URL` ausente em `refresh`/`cache`, ou `.env` inválido              |
+| `DATABASE_UNAVAILABLE`              | Banco de dados inacessível no comando `cache`                                               |
 | `UNAUTHORIZED`                      | A Steam ou a Leetify recusou a chave                                                        |
 | `RATE_LIMITED`                      | Limite de requisições atingido (sem `LEETIFY_API_KEY`, a mensagem sugere configurá-la)      |
 | `TIMEOUT` / `UPSTREAM_UNAVAILABLE`  | Steam ou Leetify lenta, fora do ar ou sem conexão                                           |

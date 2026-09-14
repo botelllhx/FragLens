@@ -16,6 +16,7 @@ export function registerDoctorCommand(program: Command, ctx: CommandContext): vo
         env: ctx.env,
         nodeVersion: ctx.nodeVersion,
         createSteamGateway: (apiKey) => ctx.createSteamGateway(apiKey, logger),
+        connectDatabase: (databaseUrl) => ctx.connectDatabase(databaseUrl),
       });
 
       ctx.io.stdout(

@@ -1,0 +1,32 @@
+{
+  "name": "@fraglens/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Persistência do FragLens: schema Prisma, migrations e repositórios PostgreSQL.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "@fraglens/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "prisma"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "generate": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@fraglens/core": "workspace:*",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0"
+  },
+  "devDependencies": {
+    "prisma": "7.10.0"
+  }
+}

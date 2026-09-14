@@ -1,7 +1,7 @@
 import { AppError } from '@fraglens/shared';
 import { describe, expect, it } from 'vitest';
 import type { DoctorReport } from '../src/doctor/checks.js';
-import { fakeGateway, runCli } from './helpers.js';
+import { fakeDatabase, fakeGateway, runCli } from './helpers.js';
 
 describe('fraglens (argumentos)', () => {
   it('exibe a ajuda em português', async () => {
@@ -11,7 +11,7 @@ describe('fraglens (argumentos)', () => {
     expect(stdout).toContain('Uso: fraglens [opções] [comando]');
     expect(stdout).toContain('Opções:');
     expect(stdout).toContain('Comandos:');
-    expect(stdout).toContain('profile <jogador>');
+    expect(stdout).toContain('profile [opções] <jogador>');
     expect(stdout).toContain('doctor');
   });
 
@@ -74,6 +74,48 @@ describe('fraglens doctor', () => {
 
     expect(exitCode).toBe(1);
     expect(stdout).toContain('✗ Steam API — a chave foi recusada, confira STEAM_API_KEY');
+  });
+
+  it('confirma o banco conectado com migrations em dia', async () => {
+    const { exitCode, stdout } = await runCli(['doctor'], {
+      env: { STEAM_API_KEY: 'chave', DATABASE_URL: 'postgresql://localhost/fraglens' },
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('✓ Banco de dados conectado (migrations em dia)');
+  });
+
+  it('falha quando há migrations pendentes', async () => {
+    const { exitCode, stdout } = await runCli(['doctor'], {
+      env: { STEAM_API_KEY: 'chave', DATABASE_URL: 'postgresql://localhost/fraglens' },
+      connectDatabase: () =>
+        fakeDatabase({
+          checkHealth: () =>
+            Promise.resolve({ appliedMigrations: 0, pendingMigrations: ['20260914000000_init'] }),
+        }),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain('✗ Banco de dados — 1 migration(s) pendente(s), rode pnpm db:migrate');
+  });
+
+  it('falha quando não consegue conectar ao banco', async () => {
+    let closed = false;
+    const { exitCode, stdout } = await runCli(['doctor'], {
+      env: { STEAM_API_KEY: 'chave', DATABASE_URL: 'postgresql://localhost/fraglens' },
+      connectDatabase: () =>
+        fakeDatabase({
+          checkHealth: () => Promise.reject(new Error('connect ECONNREFUSED 127.0.0.1:5432')),
+          close: () => {
+            closed = true;
+            return Promise.resolve();
+          },
+        }),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain('✗ Banco de dados — não foi possível conectar');
+    expect(closed).toBe(true);
   });
 
   it('usa símbolos ASCII em terminais sem suporte a unicode', async () => {

@@ -1,9 +1,12 @@
 import { Command, CommanderError, Help } from 'commander';
 import type { PerformanceSource, SteamGateway } from '@fraglens/core';
+import type { Database } from '@fraglens/db';
 import type { EnvSource, Logger } from '@fraglens/shared';
+import { registerCacheCommand } from './commands/cache.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerMatchesCommand } from './commands/matches.js';
 import { registerProfileCommand } from './commands/profile.js';
+import { registerRefreshCommand } from './commands/refresh.js';
 import { translateCommanderMessage, translateHelp } from './i18n.js';
 import type { CliIo } from './io.js';
 import { errorToJson, renderError } from './ui/errors.js';
@@ -14,6 +17,7 @@ export type PerformanceSourceFactory = (
   apiKey: string | undefined,
   logger: Logger,
 ) => PerformanceSource;
+export type DatabaseFactory = (databaseUrl: string) => Database;
 
 export interface CliDeps {
   io: CliIo;
@@ -24,6 +28,7 @@ export interface CliDeps {
   unicode: boolean;
   createSteamGateway: SteamGatewayFactory;
   createPerformanceSource: PerformanceSourceFactory;
+  connectDatabase: DatabaseFactory;
   /** Fuso horário para exibir datas; padrão: o do sistema. */
   timeZone?: string;
 }
@@ -65,6 +70,8 @@ export function createProgram(ctx: CommandContext): Command {
 
   registerProfileCommand(program, ctx);
   registerMatchesCommand(program, ctx);
+  registerRefreshCommand(program, ctx);
+  registerCacheCommand(program, ctx);
   registerDoctorCommand(program, ctx);
   return program;
 }

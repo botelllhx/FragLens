@@ -9,6 +9,11 @@
     "node": ">=22.18.0"
   },
   "scripts": {
+    "postinstall": "pnpm --filter @fraglens/db run generate",
+    "db:up": "docker compose up -d postgres",
+    "db:generate": "pnpm --filter @fraglens/db run generate",
+    "db:migrate": "pnpm --filter @fraglens/db run migrate:deploy",
+    "db:migrate:dev": "pnpm --filter @fraglens/db run migrate:dev",
     "build": "tsc -b tsconfig.build.json",
     "clean": "tsc -b tsconfig.build.json --clean",
     "typecheck": "pnpm -r run typecheck",
@@ -17,6 +22,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run packages/db",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "dev:cli": "tsx --conditions=@fraglens/source apps/cli/src/index.ts",
     "dev:api": "tsx watch --conditions=@fraglens/source apps/api/src/server.ts"

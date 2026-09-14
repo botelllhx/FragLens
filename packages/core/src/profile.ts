@@ -35,6 +35,10 @@ export interface PlayerProfile {
   summary: SteamPlayerSummary;
   bans: SteamBanStatus | null;
   cs2: Cs2Playtime;
-  /** ISO 8601. */
+  /** Versão do formato do perfil (ver PROFILE_DATA_VERSION). */
+  dataVersion: number;
+  /** `true` quando o perfil veio do banco em vez de uma consulta à Steam. */
+  cached: boolean;
+  /** Quando os dados foram obtidos da Steam. ISO 8601. */
   fetchedAt: string;
 }

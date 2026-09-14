@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
+import { connectDatabase } from '@fraglens/db';
 import { loadEnvFile } from '@fraglens/shared';
 import { LeetifyClient } from '@fraglens/sources';
 import { SteamWebApiClient } from '@fraglens/steam';
@@ -22,4 +23,5 @@ process.exitCode = await run(process.argv, {
   unicode: supportsUnicode(),
   createSteamGateway: (apiKey, logger) => new SteamWebApiClient({ apiKey, logger }),
   createPerformanceSource: (apiKey, logger) => new LeetifyClient({ apiKey, logger }),
+  connectDatabase,
 });

@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'TIMEOUT'
   | 'UPSTREAM_UNAVAILABLE'
   | 'UPSTREAM_ERROR'
+  | 'DATABASE_UNAVAILABLE'
   | 'INTERNAL';
 
 export interface AppErrorOptions {

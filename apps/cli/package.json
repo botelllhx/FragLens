@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@fraglens/core": "workspace:*",
+    "@fraglens/db": "workspace:*",
     "@fraglens/shared": "workspace:*",
     "@fraglens/sources": "workspace:*",
     "@fraglens/steam": "workspace:*",

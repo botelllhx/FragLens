@@ -11,6 +11,7 @@
     { "path": "../../packages/shared/tsconfig.build.json" },
     { "path": "../../packages/core/tsconfig.build.json" },
     { "path": "../../packages/steam/tsconfig.build.json" },
-    { "path": "../../packages/sources/tsconfig.build.json" }
+    { "path": "../../packages/sources/tsconfig.build.json" },
+    { "path": "../../packages/db/tsconfig.build.json" }
   ]
 }

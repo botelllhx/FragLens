@@ -8,7 +8,7 @@ O FragLens analisa jogadores de CS2 a partir de uma Steam ID ou URL de perfil: b
 fraglens analyze https://steamcommunity.com/id/usuario
 ```
 
-> **Status:** em desenvolvimento — **Fase 3 concluída** (`fraglens profile` e `fraglens matches`). A análise completa ainda não existe; veja o [roadmap](#15-roadmap).
+> **Status:** em desenvolvimento — **Fase 4 concluída** (banco de dados, cache do perfil, `refresh` e `cache`). A análise completa ainda não existe; veja o [roadmap](#15-roadmap).
 
 ---
 
@@ -52,21 +52,21 @@ CLI ───────┐
 API ───────┘
 ```
 
-| Pacote               | Responsabilidade                                             | Status                                           |
-| -------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
-| `apps/cli`           | Comando `fraglens` (Commander)                               | `profile`, `matches`, `doctor`                   |
-| `apps/api`           | API HTTP (Fastify)                                           | Esqueleto + `/health`                            |
-| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente           | ✅                                               |
-| `packages/contracts` | Schemas compartilhados CLI/API                               | Fase 9                                           |
-| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas | ✅ (cresce a cada fase)                          |
-| `packages/steam`     | Cliente da Steam Web API                                     | ✅                                               |
-| `packages/sources`   | Cliente da Leetify Public API                                | ✅                                               |
-| `packages/db`        | Prisma 7 + PostgreSQL                                        | Fase 4                                           |
-| `packages/analysis`  | Motor de métricas (funções puras)                            | K/D, ADR, HS%, forma recente; completo na Fase 5 |
-| `packages/demos`     | Parser de demos                                              | Fase 6                                           |
-| `packages/ai`        | Provedores de IA                                             | Fase 8                                           |
+| Pacote               | Responsabilidade                                               | Status                                             |
+| -------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| `apps/cli`           | Comando `fraglens` (Commander)                                 | `profile`, `matches`, `refresh`, `cache`, `doctor` |
+| `apps/api`           | API HTTP (Fastify)                                             | Esqueleto + `/health`                              |
+| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente             | ✅                                                 |
+| `packages/contracts` | Schemas compartilhados CLI/API                                 | Fase 9                                             |
+| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas   | ✅ (cresce a cada fase)                            |
+| `packages/steam`     | Cliente da Steam Web API                                       | ✅                                                 |
+| `packages/sources`   | Cliente da Leetify Public API                                  | ✅                                                 |
+| `packages/db`        | Prisma 7 + PostgreSQL: cache e histórico do perfil Steam, jobs | ✅                                                 |
+| `packages/analysis`  | Motor de métricas (funções puras)                              | K/D, ADR, HS%, forma recente; completo na Fase 5   |
+| `packages/demos`     | Parser de demos                                                | Fase 6                                             |
+| `packages/ai`        | Provedores de IA                                               | Fase 8                                             |
 
-Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md) e [docs/decisions/](docs/decisions/).
+Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md), [docs/database.md](docs/database.md) e [docs/decisions/](docs/decisions/).
 
 ## 3. Instalação
 
@@ -90,15 +90,16 @@ pnpm install
 cp .env.example .env
 ```
 
-| Variável                  | Obrigatória      | Descrição                                        |
-| ------------------------- | ---------------- | ------------------------------------------------ |
-| `STEAM_API_KEY`           | Sim (modo local) | Chave da Steam Web API                           |
-| `DATABASE_URL`            | Sim (modo local) | Conexão PostgreSQL                               |
-| `LEETIFY_API_KEY`         | Não              | Sem chave a Leetify funciona com limites menores |
-| `STEAM_PROFILE_CACHE_TTL` | Não              | Cache do perfil Steam em segundos (padrão 86400) |
-| `AI_PROVIDER`             | Não              | `none` por enquanto                              |
-| `PORT`, `HOST`            | Não              | Endereço da API (padrão `0.0.0.0:3000`)          |
-| `LOG_LEVEL`               | Não              | `info` por padrão                                |
+| Variável                  | Obrigatória      | Descrição                                                                               |
+| ------------------------- | ---------------- | --------------------------------------------------------------------------------------- |
+| `STEAM_API_KEY`           | Sim (modo local) | Chave da Steam Web API                                                                  |
+| `DATABASE_URL`            | Não              | PostgreSQL; sem ele o cache do perfil fica desativado e `refresh`/`cache` não funcionam |
+| `TEST_DATABASE_URL`       | Não              | Banco dos testes de integração (`pnpm test:db`)                                         |
+| `LEETIFY_API_KEY`         | Não              | Sem chave a Leetify funciona com limites menores                                        |
+| `STEAM_PROFILE_CACHE_TTL` | Não              | Cache do perfil Steam em segundos (padrão 86400)                                        |
+| `AI_PROVIDER`             | Não              | `none` por enquanto                                                                     |
+| `PORT`, `HOST`            | Não              | Endereço da API (padrão `0.0.0.0:3000`)                                                 |
+| `LOG_LEVEL`               | Não              | `info` por padrão                                                                       |
 
 O arquivo `.env` nunca deve ser versionado (já está no `.gitignore`).
 
@@ -113,8 +114,9 @@ Regras importantes dos termos da Steam: a chave é pessoal e não pode ser compa
 ## 6. Executando localmente
 
 ```bash
-# Banco de dados local (necessário a partir da Fase 4)
-docker compose up -d postgres
+# Banco de dados local (PostgreSQL no Docker) e criação das tabelas
+pnpm db:up
+pnpm db:migrate
 
 # CLI a partir do código-fonte
 pnpm dev:cli doctor
@@ -131,8 +133,11 @@ Disponível hoje (a partir do código-fonte, use `pnpm dev:cli` no lugar de `fra
 fraglens profile 76561198012345678                        # por SteamID64
 fraglens profile https://steamcommunity.com/id/usuario    # por URL
 fraglens profile usuario --json                           # por nome, em JSON
+fraglens profile usuario --refresh                        # ignora o cache (24 h) e busca na Steam
 fraglens matches usuario                                  # últimas 20 partidas (Leetify)
 fraglens matches usuario --limit 50 --json                # até 100 partidas, em JSON
+fraglens refresh usuario                                  # atualiza o perfil guardado no banco
+fraglens cache usuario                                    # mostra o que está guardado e se expirou
 fraglens doctor                                           # diagnóstico do ambiente
 fraglens --help                                           # ajuda
 ```
@@ -207,7 +212,7 @@ Códigos de saída: `0` sucesso · `1` falha · `2` uso incorreto.
 
 Referência completa: [docs/cli.md](docs/cli.md).
 
-Comandos planejados: `analyze`, `maps`, `progress`, `compare`, `refresh`, `cache`, `config` — ver [roadmap](#15-roadmap).
+Comandos planejados: `analyze`, `maps`, `progress`, `compare`, `config` — ver [roadmap](#15-roadmap).
 
 ## 8. Executando a API
 
@@ -228,13 +233,14 @@ Endpoints disponíveis hoje:
 ```bash
 pnpm lint          # ESLint com regras baseadas em tipos
 pnpm typecheck     # TypeScript strict em todos os pacotes
-pnpm test          # Vitest
+pnpm test          # Vitest (testes unitários)
+pnpm test:db       # testes de integração com PostgreSQL real (requer TEST_DATABASE_URL)
 pnpm build         # compila todos os pacotes
 pnpm format:check  # Prettier
 pnpm check         # lint + typecheck + test + build
 ```
 
-Os testes não dependem de serviços externos: APIs externas são sempre simuladas.
+Os testes unitários não dependem de serviços externos: Steam, Leetify e banco são simulados. Os testes de integração usam um banco separado (`fraglens_test`); veja [docs/database.md](docs/database.md#testes).
 
 ## 10. Docker
 
@@ -286,17 +292,19 @@ _Dados de desempenho fornecidos pela Leetify (Data Provided by Leetify). O FragL
 
 ## 14. Licenças das dependências
 
-Todas as dependências de execução atuais usam licença MIT:
+Todas as dependências de execução atuais usam licenças permissivas:
 
-| Dependência | Licença |
-| ----------- | ------- |
-| commander   | MIT     |
-| fastify     | MIT     |
-| picocolors  | ISC     |
-| pino        | MIT     |
-| zod         | MIT     |
+| Dependência                        | Licença    |
+| ---------------------------------- | ---------- |
+| commander                          | MIT        |
+| fastify                            | MIT        |
+| picocolors                         | ISC        |
+| pino                               | MIT        |
+| zod                                | MIT        |
+| @prisma/client, @prisma/adapter-pg | Apache-2.0 |
+| pg (dependência do adapter)        | MIT        |
 
-Ferramentas de desenvolvimento (TypeScript: Apache-2.0; ESLint, Prettier, Vitest, tsx: MIT). A tabela será atualizada a cada fase.
+Ferramentas de desenvolvimento (TypeScript e Prisma CLI: Apache-2.0; ESLint, Prettier, Vitest, tsx: MIT). A tabela será atualizada a cada fase.
 
 ## 15. Roadmap
 
@@ -306,7 +314,7 @@ Ferramentas de desenvolvimento (TypeScript: Apache-2.0; ESLint, Prettier, Vitest
 | 1    | Bootstrap: monorepo, TypeScript, lint, testes, Docker, README | ✅     |
 | 2    | Resolver de Steam ID + `fraglens profile`                     | ✅     |
 | 3    | Integração Leetify + `fraglens matches`                       | ✅     |
-| 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ⏳     |
+| 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ✅     |
 | 5    | Motor de métricas determinísticas                             | ⏳     |
 | 6    | Processamento de demos enviadas pelo usuário                  | ⏳     |
 | 7    | `fraglens analyze --no-ai`                                    | ⏳     |

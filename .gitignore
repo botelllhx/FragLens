@@ -4,6 +4,9 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Client do Prisma (gerado no postinstall)
+packages/db/src/generated/
+
 # Segredos — nunca versionar
 .env
 .env.*

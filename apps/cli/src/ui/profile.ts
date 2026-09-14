@@ -48,9 +48,18 @@ export function renderProfile(profile: PlayerProfile, theme: Theme, format: Form
     ...section('CS2', renderPlaytime(profile.cs2, theme), theme),
     ...section('BANIMENTOS', [renderBans(profile.bans, theme)], theme),
     rule(theme),
-    theme.colors.dim(`Dados da Steam obtidos em ${formatDateTime(profile.fetchedAt, format)}`),
+    ...footer(profile, theme, format),
     '',
   ].join('\n');
+}
+
+function footer(profile: PlayerProfile, { colors }: Theme, format: FormatOptions): string[] {
+  const fetchedAt = formatDateTime(profile.fetchedAt, format);
+  if (!profile.cached) return [colors.dim(`Dados da Steam obtidos em ${fetchedAt}`)];
+  return [
+    colors.dim(`Dados da Steam obtidos em ${fetchedAt} (cache)`),
+    colors.dim('Use --refresh para buscar novamente.'),
+  ];
 }
 
 function renderPlaytime(cs2: Cs2Playtime, theme: Theme): string[] {

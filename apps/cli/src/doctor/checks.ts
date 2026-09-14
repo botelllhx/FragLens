@@ -1,4 +1,5 @@
 import type { SteamGateway } from '@fraglens/core';
+import type { Database } from '@fraglens/db';
 import { AppError, loadConfig, type Config, type EnvSource } from '@fraglens/shared';
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
@@ -19,6 +20,7 @@ export interface DoctorInput {
   env: EnvSource;
   nodeVersion: string;
   createSteamGateway: (apiKey: string) => Pick<SteamGateway, 'getPlayerSummary'>;
+  connectDatabase: (databaseUrl: string) => Pick<Database, 'checkHealth' | 'close'>;
 }
 
 export const MIN_NODE_VERSION = '22.18.0';
@@ -31,8 +33,11 @@ export async function runDoctor(input: DoctorInput): Promise<DoctorReport> {
 
   const config = tryLoadConfig(input.env, checks);
   if (config) {
-    checks.push(await checkSteamApi(config, input.createSteamGateway));
-    checks.push(...checkOptionalServices(config));
+    const [steam, database] = await Promise.all([
+      checkSteamApi(config, input.createSteamGateway),
+      checkDatabase(config, input.connectDatabase),
+    ]);
+    checks.push(steam, database, ...checkOptionalServices(config));
   }
 
   return { ready: checks.every((check) => check.status !== 'fail'), checks };
@@ -92,17 +97,46 @@ async function checkSteamApi(
   }
 }
 
-// Banco (Fase 4) e IA (Fase 8) ainda não têm teste de conexão.
+async function checkDatabase(
+  config: Config,
+  connectDatabase: DoctorInput['connectDatabase'],
+): Promise<CheckResult> {
+  if (!config.databaseUrl) {
+    return {
+      id: 'database',
+      label: 'Banco de dados',
+      status: 'warn',
+      detail: 'não configurado (DATABASE_URL), o cache do perfil fica desativado',
+    };
+  }
+
+  const database = connectDatabase(config.databaseUrl);
+  try {
+    const { pendingMigrations } = await database.checkHealth();
+    if (pendingMigrations.length > 0) {
+      return {
+        id: 'database',
+        label: 'Banco de dados',
+        status: 'fail',
+        detail: `${pendingMigrations.length} migration(s) pendente(s), rode pnpm db:migrate`,
+      };
+    }
+    return { id: 'database', label: 'Banco de dados conectado (migrations em dia)', status: 'ok' };
+  } catch {
+    return {
+      id: 'database',
+      label: 'Banco de dados',
+      status: 'fail',
+      detail: 'não foi possível conectar, confira DATABASE_URL e se o PostgreSQL está rodando',
+    };
+  } finally {
+    await database.close().catch(() => undefined);
+  }
+}
+
+// IA (Fase 8) ainda não tem teste de conexão; a Leetify funciona sem chave.
 function checkOptionalServices(config: Config): CheckResult[] {
   return [
-    config.databaseUrl
-      ? { id: 'database-url', label: 'Banco de dados configurado', status: 'ok' }
-      : {
-          id: 'database-url',
-          label: 'Banco de dados',
-          status: 'warn',
-          detail: 'não configurado (DATABASE_URL)',
-        },
     config.leetify.apiKey
       ? { id: 'leetify-key', label: 'Chave da Leetify configurada', status: 'ok' }
       : {
