@@ -1,7 +1,8 @@
 import { AppError, type Logger } from '@fraglens/shared';
 import type { SteamIdentifierResolver } from './identifier-resolver.js';
-import type { PlayerStore, SteamGateway, SyncJobResult, SyncJobSummary } from './ports.js';
+import type { SteamGateway, SyncJobSummary } from './ports.js';
 import type { PlayerProfile } from './profile.js';
+import { StoreGuard } from './store-guard.js';
 
 /** Versão do formato do perfil guardado. Aumente ao mudar a estrutura para invalidar o cache antigo. */
 export const PROFILE_DATA_VERSION = 1;
@@ -10,8 +11,8 @@ export const DEFAULT_PROFILE_CACHE_TTL_SECONDS = 86_400;
 export interface ProfileServiceDeps {
   steam: SteamGateway;
   resolver: SteamIdentifierResolver;
-  /** Sem store (banco não configurado), o cache fica desativado. */
-  store?: PlayerStore | undefined;
+  /** Acesso ao banco, compartilhado entre os serviços. Sem banco, o cache fica desativado. */
+  store?: StoreGuard;
   cacheTtlSeconds?: number;
   logger?: Logger;
   now?: () => Date;
@@ -40,23 +41,21 @@ export interface ProfileCacheStatus {
   expiresAt: string | null;
   fresh: boolean;
   lastSyncJob: SyncJobSummary | null;
+  lastAnalyzedAt: string | null;
 }
 
 export class ProfileService {
   private readonly steam: SteamGateway;
   private readonly resolver: SteamIdentifierResolver;
-  private readonly store: PlayerStore | undefined;
+  private readonly store: StoreGuard;
   private readonly cacheTtlMs: number;
   private readonly logger: Logger | undefined;
   private readonly now: () => Date;
-  // Após a primeira falha do banco, não tenta de novo nesta execução:
-  // cada tentativa pode esperar o timeout de conexão.
-  private storeAvailable = true;
 
   constructor(deps: ProfileServiceDeps) {
     this.steam = deps.steam;
     this.resolver = deps.resolver;
-    this.store = deps.store;
+    this.store = deps.store ?? new StoreGuard(undefined);
     this.cacheTtlMs = (deps.cacheTtlSeconds ?? DEFAULT_PROFILE_CACHE_TTL_SECONDS) * 1000;
     this.logger = deps.logger;
     this.now = deps.now ?? (() => new Date());
@@ -77,21 +76,15 @@ export class ProfileService {
 
   /** Busca na Steam e guarda, ignorando o cache. Exige banco configurado. */
   async refresh(input: string): Promise<RefreshResult> {
-    this.requireStore();
+    this.store.requireConfigured();
     const steamId64 = await this.resolver.resolve(input);
     return this.fetchAndStore(steamId64);
   }
 
   async getCacheStatus(input: string): Promise<ProfileCacheStatus> {
-    const store = this.requireStore();
+    this.store.requireConfigured();
     const steamId64 = await this.resolver.resolve(input);
-
-    let info;
-    try {
-      info = await store.getCacheInfo(steamId64);
-    } catch (error) {
-      throw databaseUnavailable(error);
-    }
+    const info = await this.store.require((store) => store.getCacheInfo(steamId64));
 
     const lastFetchedAt = info?.latestFetchedAt ?? null;
     const dataVersion = info?.latestDataVersion ?? null;
@@ -112,11 +105,12 @@ export class ProfileService {
       fresh:
         lastFetchedAt !== null && dataVersion !== null && this.isFresh(lastFetchedAt, dataVersion),
       lastSyncJob: info?.lastSyncJob ?? null,
+      lastAnalyzedAt: info?.lastAnalyzedAt ?? null,
     };
   }
 
   private async readFreshCache(steamId64: string): Promise<PlayerProfile | null> {
-    const stored = await this.useStore('profile.cache.read', (store) =>
+    const stored = await this.store.attempt('profile.cache.read', (store) =>
       store.findLatestProfile(steamId64),
     );
     if (!stored || !this.isFresh(stored.profile.fetchedAt, stored.dataVersion)) return null;
@@ -125,26 +119,15 @@ export class ProfileService {
     return { ...stored.profile, cached: true };
   }
 
-  private async fetchAndStore(steamId64: string): Promise<RefreshResult> {
-    const jobId = await this.useStore('sync_job.start', (store) =>
-      store.startSyncJob(steamId64, 'steam-profile'),
-    );
-
-    let profile: PlayerProfile;
-    try {
-      profile = await this.fetchFromSteam(steamId64);
-    } catch (error) {
-      await this.finishJob(jobId, failureOf(error));
-      throw error;
-    }
-
-    const saved = await this.useStore('profile.cache.write', async (store) => {
-      await store.saveProfile(profile);
-      return true;
+  private fetchAndStore(steamId64: string): Promise<RefreshResult> {
+    return this.store.trackJob(steamId64, 'steam-profile', async () => {
+      const profile = await this.fetchFromSteam(steamId64);
+      const saved = await this.store.attempt('profile.cache.write', async (store) => {
+        await store.saveProfile(profile);
+        return true;
+      });
+      return { profile, saved: saved === true };
     });
-    await this.finishJob(jobId, { status: 'succeeded' });
-
-    return { profile, saved: saved === true };
   }
 
   private async fetchFromSteam(steamId64: string): Promise<PlayerProfile> {
@@ -171,60 +154,10 @@ export class ProfileService {
     };
   }
 
-  private async finishJob(jobId: string | undefined, result: SyncJobResult): Promise<void> {
-    if (jobId === undefined) return;
-    await this.useStore('sync_job.finish', (store) => store.finishSyncJob(jobId, result));
-  }
-
   private isFresh(fetchedAt: string, dataVersion: number): boolean {
     return (
       dataVersion === PROFILE_DATA_VERSION &&
       this.now().getTime() - Date.parse(fetchedAt) < this.cacheTtlMs
     );
   }
-
-  /** O cache nunca derruba a consulta: com o banco fora do ar, o perfil vem direto da Steam. */
-  private async useStore<T>(
-    operation: string,
-    fn: (store: PlayerStore) => Promise<T>,
-  ): Promise<T | undefined> {
-    if (!this.store || !this.storeAvailable) return undefined;
-    try {
-      return await fn(this.store);
-    } catch (error) {
-      this.storeAvailable = false;
-      this.logger?.warn({ operation, err: error }, 'database.unavailable');
-      return undefined;
-    }
-  }
-
-  private requireStore(): PlayerStore {
-    if (!this.store) {
-      throw new AppError('CONFIG_MISSING', 'O banco de dados não está configurado.', {
-        hints: [
-          'Defina DATABASE_URL no arquivo .env.',
-          'Ambiente local: pnpm db:up e depois pnpm db:migrate.',
-        ],
-      });
-    }
-    return this.store;
-  }
-}
-
-function failureOf(error: unknown): SyncJobResult {
-  return {
-    status: 'failed',
-    errorCode: error instanceof AppError ? error.code : 'INTERNAL',
-    errorMessage: error instanceof Error ? error.message : String(error),
-  };
-}
-
-function databaseUnavailable(cause: unknown): AppError {
-  return new AppError('DATABASE_UNAVAILABLE', 'Não foi possível acessar o banco de dados.', {
-    hints: [
-      'Verifique se o PostgreSQL está rodando (pnpm db:up) e se DATABASE_URL está correto.',
-      'Rode fraglens doctor para um diagnóstico.',
-    ],
-    cause,
-  });
 }

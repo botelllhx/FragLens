@@ -6,11 +6,11 @@ PostgreSQL com **Prisma ORM 7** ([ADR 0006](decisions/0006-prisma-7.md)). Códig
 
 Somente **dados próprios** do FragLens. Dados da Leetify **nunca** são gravados ([ADR 0001](decisions/0001-leetify-fonte-ao-vivo.md)).
 
-| Tabela                    | Conteúdo                                                                                                                          | Por quê                                                                                                                         |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `players`                 | Uma linha por SteamID64 consultada                                                                                                | Âncora das demais tabelas                                                                                                       |
-| `steam_profile_snapshots` | Uma foto do perfil Steam a cada busca: nome, URL, avatar, visibilidade, país, data de criação da conta, horas de CS2 e banimentos | O mais recente serve de **cache**; os anteriores formam o **histórico** (mudança de nome, horas e banimentos ao longo do tempo) |
-| `sync_jobs`               | Cada sincronização com a Steam: tipo, status (`RUNNING`, `SUCCEEDED`, `FAILED`), erro, início e fim                               | Observabilidade e base para, no futuro, mover as sincronizações para uma fila assíncrona                                        |
+| Tabela                    | Conteúdo                                                                                                                                                                                                                                           | Por quê                                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `players`                 | Uma linha por SteamID64 consultada                                                                                                                                                                                                                 | Âncora das demais tabelas                                                                                                       |
+| `steam_profile_snapshots` | Uma foto do perfil Steam a cada busca: nome, URL, avatar, visibilidade, país, data de criação da conta, horas de CS2 e banimentos                                                                                                                  | O mais recente serve de **cache**; os anteriores formam o **histórico** (mudança de nome, horas e banimentos ao longo do tempo) |
+| `sync_jobs`               | Cada busca do perfil Steam (`STEAM_PROFILE`) e cada execução de `analyze` (`ANALYSIS`): status (`RUNNING`, `SUCCEEDED`, `FAILED`), erro, início e fim. Nenhum resultado da análise é guardado ([ADR 0010](decisions/0010-registro-de-analises.md)) | Observabilidade e base para, no futuro, mover as sincronizações para uma fila assíncrona                                        |
 
 Tabelas de partidas (`matches`, `match_players`) só serão criadas na Fase 6, para estatísticas extraídas de demos processadas pelo próprio FragLens.
 
@@ -48,18 +48,18 @@ e foi gravado na versão atual do formato (data_version)?
 - **Validade:** `STEAM_PROFILE_CACHE_TTL` (padrão 86400 s = 24 h).
 - **`--refresh`** ou **`fraglens refresh`**: ignoram o cache e sempre buscam na Steam.
 - **`data_version`:** ao mudar o formato do perfil, a constante `PROFILE_DATA_VERSION` é incrementada e snapshots antigos deixam de valer como cache, sem migração de dados.
-- **Registro de datas:** `fetched_at` (quando os dados foram obtidos) e `data_version` ficam em cada snapshot. `lastAnalyzedAt` entrará junto com as análises (Fase 7).
+- **Registro de datas:** `fetched_at` (quando os dados foram obtidos) e `data_version` ficam em cada snapshot. `lastAnalyzedAt` é o fim do último job `ANALYSIS` concluído com sucesso.
 
 ### Banco indisponível
 
 O cache nunca derruba uma consulta:
 
-| Comando              | Com o banco fora do ar                                            |
-| -------------------- | ----------------------------------------------------------------- |
-| `profile`, `matches` | Funcionam normalmente, buscando na Steam/Leetify; nada é guardado |
-| `refresh`            | Busca na Steam, avisa que não salvou e sai com código 1           |
-| `cache`              | Erro `DATABASE_UNAVAILABLE` com dicas                             |
-| `doctor`             | Falha em "Banco de dados"                                         |
+| Comando                                             | Com o banco fora do ar                                            |
+| --------------------------------------------------- | ----------------------------------------------------------------- |
+| `profile`, `matches`, `maps`, `progress`, `analyze` | Funcionam normalmente, buscando na Steam/Leetify; nada é guardado |
+| `refresh`                                           | Busca na Steam, avisa que não salvou e sai com código 1           |
+| `cache`                                             | Erro `DATABASE_UNAVAILABLE` com dicas                             |
+| `doctor`                                            | Falha em "Banco de dados"                                         |
 
 Após a primeira falha, o FragLens não tenta o banco de novo na mesma execução (cada tentativa esperaria o timeout de conexão de 5 s).
 
@@ -69,13 +69,13 @@ Sem `DATABASE_URL`, o cache fica desativado e `refresh`/`cache` informam que o b
 
 Executados na raiz do repositório:
 
-| Comando               | O que faz                                                                |
-| --------------------- | ------------------------------------------------------------------------ |
-| `pnpm db:up`          | Sobe o PostgreSQL local (Docker Compose)                                 |
-| `pnpm db:migrate`     | Aplica as migrations pendentes (`prisma migrate deploy`)                 |
-| `pnpm db:migrate:dev` | Cria uma nova migration a partir de mudanças no schema (desenvolvimento) |
-| `pnpm db:generate`    | Gera o client do Prisma (roda sozinho após `pnpm install`)               |
-| `pnpm test:db`        | Testes de integração com PostgreSQL real                                 |
+| Comando               | O que faz                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm db:up`          | Sobe o PostgreSQL local (Docker Compose)                                                                     |
+| `pnpm db:migrate`     | Aplica as migrations pendentes (`prisma migrate deploy`)                                                     |
+| `pnpm db:migrate:dev` | Cria uma nova migration a partir de mudanças no schema e regenera o client (o Prisma 7 não faz isso sozinho) |
+| `pnpm db:generate`    | Gera o client do Prisma (roda sozinho após `pnpm install`)                                                   |
+| `pnpm test:db`        | Testes de integração com PostgreSQL real                                                                     |
 
 O client gerado fica em `packages/db/src/generated/` e **não é versionado**.
 

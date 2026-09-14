@@ -22,6 +22,8 @@ enum ProfileVisibility {
 
 enum SyncJobType {
   STEAM_PROFILE
+  /// Execução de `fraglens analyze`: registra só data e status, nunca dados da Leetify.
+  ANALYSIS
 }
 
 enum SyncJobStatus {

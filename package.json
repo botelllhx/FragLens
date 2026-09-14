@@ -13,7 +13,7 @@
     "db:up": "docker compose up -d postgres",
     "db:generate": "pnpm --filter @fraglens/db run generate",
     "db:migrate": "pnpm --filter @fraglens/db run migrate:deploy",
-    "db:migrate:dev": "pnpm --filter @fraglens/db run migrate:dev",
+    "db:migrate:dev": "pnpm --filter @fraglens/db run migrate:dev && pnpm db:generate",
     "build": "tsc -b tsconfig.build.json",
     "clean": "tsc -b tsconfig.build.json --clean",
     "typecheck": "pnpm -r run typecheck",

@@ -1,4 +1,5 @@
 export { recentForm, type Outcome, type RecentForm } from './form.js';
+export { mapHighlights, type MapHighlights } from './highlights.js';
 export { MIN_MAP_SAMPLE, performanceByMap, type MapPerformance } from './maps.js';
 export {
   averageDamagePerRound,

@@ -16,7 +16,7 @@ export interface PerformanceSource {
   getPlayerPerformance(steamId64: string): Promise<PerformanceData | null>;
 }
 
-export type SyncJobType = 'steam-profile';
+export type SyncJobType = 'steam-profile' | 'analysis';
 export type SyncJobStatus = 'running' | 'succeeded' | 'failed';
 export type SyncJobResult =
   { status: 'succeeded' } | { status: 'failed'; errorCode: string; errorMessage: string };
@@ -40,7 +40,10 @@ export interface ProfileCacheInfo {
   snapshotCount: number;
   latestFetchedAt: string | null;
   latestDataVersion: number | null;
+  /** Última sincronização do perfil Steam. */
   lastSyncJob: SyncJobSummary | null;
+  /** Fim da última análise concluída (ISO 8601). */
+  lastAnalyzedAt: string | null;
 }
 
 /**

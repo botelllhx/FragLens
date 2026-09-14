@@ -4,6 +4,7 @@ import { SteamIdentifierResolver } from '../src/identifier-resolver.js';
 import type { PlayerStore, SteamGateway, SyncJobResult } from '../src/ports.js';
 import type { PlayerProfile, SteamPlayerSummary } from '../src/profile.js';
 import { PROFILE_DATA_VERSION, ProfileService } from '../src/profile-service.js';
+import { StoreGuard } from '../src/store-guard.js';
 
 const STEAM_ID = '76561198034202275';
 const NOW = new Date('2026-09-14T12:00:00.000Z');
@@ -88,6 +89,7 @@ function memoryStore(initial: PlayerProfile[] = [], options: { failing?: boolean
               latestFetchedAt: profiles.at(-1)?.fetchedAt ?? null,
               latestDataVersion: profiles.at(-1)?.dataVersion ?? null,
               lastSyncJob: null,
+              lastAnalyzedAt: null,
             },
       ),
     startSyncJob: () => {
@@ -109,7 +111,7 @@ function createService(gateway: SteamGateway, store?: PlayerStore) {
   return new ProfileService({
     steam: gateway,
     resolver: new SteamIdentifierResolver(gateway),
-    store,
+    store: store && new StoreGuard(store),
     cacheTtlSeconds: 24 * 3600,
     now: () => NOW,
   });

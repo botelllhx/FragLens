@@ -2,6 +2,7 @@ import { Command, CommanderError, Help } from 'commander';
 import type { PerformanceSource, SteamGateway } from '@fraglens/core';
 import type { Database } from '@fraglens/db';
 import type { EnvSource, Logger } from '@fraglens/shared';
+import { registerAnalyzeCommand } from './commands/analyze.js';
 import { registerCacheCommand } from './commands/cache.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerMapsCommand } from './commands/maps.js';
@@ -70,6 +71,7 @@ export function createProgram(ctx: CommandContext): Command {
     .showHelpAfterError('Use "fraglens --help" para ver os comandos disponíveis.')
     .exitOverride();
 
+  registerAnalyzeCommand(program, ctx);
   registerProfileCommand(program, ctx);
   registerMatchesCommand(program, ctx);
   registerMapsCommand(program, ctx);

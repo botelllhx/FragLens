@@ -3,6 +3,7 @@ import {
   compareRecentToPrevious,
   headshotPercentage,
   killDeathRatio,
+  mapHighlights,
   MIN_MAP_SAMPLE,
   performanceBlocks,
   performanceByMap,
@@ -16,6 +17,7 @@ import type {
   AnalyzedMatch,
   MapReport,
   MatchHistory,
+  PerformanceAnalysis,
   PerformanceData,
   PerformanceReportBase,
   PlayerMatch,
@@ -25,6 +27,7 @@ import type { PerformanceSource } from './ports.js';
 
 export const MAX_MATCHES = 100;
 export const RECENT_FORM_SIZE = 10;
+export const RECENT_MATCHES_IN_ANALYSIS = 10;
 export const LEETIFY_ATTRIBUTION = 'Dados fornecidos pela Leetify (Data Provided by Leetify)';
 
 export interface MatchServiceDeps {
@@ -100,6 +103,35 @@ export class MatchService {
       comparison: compareRecentToPrevious(selected),
       streaks: streaks(selected.map((match) => match.outcome)),
       blocks: performanceBlocks(selected),
+    };
+  }
+
+  /** Resumo, mapas, forma, tendência e partidas recentes a partir de um único carregamento. */
+  async getPerformanceAnalysis(
+    input: string,
+    query: MatchQuery = {},
+  ): Promise<PerformanceAnalysis> {
+    const loaded = await this.load(input, query);
+    const { data, selected } = loaded;
+    const maps = performanceByMap(selected);
+    const outcomes = selected.map((match) => match.outcome);
+
+    return {
+      ...this.reportBase(loaded),
+      leetify: {
+        privacyMode: data.privacyMode,
+        totalMatches: data.totalMatches,
+        ratings: data.ratings,
+      },
+      summary: summarize(selected),
+      minMapSample: MIN_MAP_SAMPLE,
+      maps,
+      mapHighlights: mapHighlights(maps),
+      recentForm: recentForm(outcomes, RECENT_FORM_SIZE),
+      comparison: compareRecentToPrevious(selected),
+      streaks: streaks(outcomes),
+      blocks: performanceBlocks(selected),
+      recentMatches: selected.slice(0, RECENT_MATCHES_IN_ANALYSIS).map(analyzeMatch),
     };
   }
 

@@ -30,10 +30,12 @@ const VISIBILITY_FROM_DB: Readonly<Record<DbProfileVisibility, ProfileVisibility
 
 const JOB_TYPE_TO_DB: Readonly<Record<SyncJobType, DbSyncJobType>> = {
   'steam-profile': 'STEAM_PROFILE',
+  analysis: 'ANALYSIS',
 };
 
 const JOB_TYPE_FROM_DB: Readonly<Record<DbSyncJobType, SyncJobType>> = {
   STEAM_PROFILE: 'steam-profile',
+  ANALYSIS: 'analysis',
 };
 
 const JOB_STATUS_FROM_DB: Readonly<Record<DbSyncJobStatus, SyncJobStatus>> = {
@@ -80,10 +82,16 @@ export class PrismaPlayerStore implements PlayerStore {
           take: 1,
           select: { fetchedAt: true, dataVersion: true },
         },
-        syncJobs: { orderBy: { startedAt: 'desc' }, take: 1 },
+        syncJobs: { where: { type: 'STEAM_PROFILE' }, orderBy: { startedAt: 'desc' }, take: 1 },
       },
     });
     if (!player) return null;
+
+    const lastAnalysis = await this.prisma.syncJob.findFirst({
+      where: { playerId: player.id, type: 'ANALYSIS', status: 'SUCCEEDED' },
+      orderBy: { finishedAt: 'desc' },
+      select: { finishedAt: true },
+    });
 
     const [latest] = player.profileSnapshots;
     const [job] = player.syncJobs;
@@ -102,6 +110,7 @@ export class PrismaPlayerStore implements PlayerStore {
             errorCode: job.errorCode,
           }
         : null,
+      lastAnalyzedAt: lastAnalysis?.finishedAt?.toISOString() ?? null,
     };
   }
 

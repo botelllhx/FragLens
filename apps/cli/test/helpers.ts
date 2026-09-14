@@ -8,6 +8,7 @@ import type {
   SteamGateway,
   SteamPlayerSummary,
   SyncJobResult,
+  SyncJobType,
 } from '@fraglens/core';
 import type { Database } from '@fraglens/db';
 import { run, type CliDeps } from '../src/program.js';
@@ -120,8 +121,13 @@ export function fakePerformance(data: PerformanceData | null): PerformanceSource
 /** Banco em memória com o mesmo contrato do PrismaPlayerStore. */
 export function memoryPlayerStore() {
   const profiles: PlayerProfile[] = [];
-  const jobs: { id: string; steamId64: string; startedAt: string; result: SyncJobResult | null }[] =
-    [];
+  const jobs: {
+    id: string;
+    steamId64: string;
+    type: SyncJobType;
+    startedAt: string;
+    result: SyncJobResult | null;
+  }[] = [];
 
   const store: PlayerStore = {
     findLatestProfile: (steamId64) => {
@@ -134,8 +140,14 @@ export function memoryPlayerStore() {
     },
     getCacheInfo: (steamId64) => {
       const own = profiles.filter((profile) => profile.steamId64 === steamId64);
-      const job = jobs.filter((candidate) => candidate.steamId64 === steamId64).at(-1);
-      if (own.length === 0 && !job) return Promise.resolve(null);
+      const playerJobs = jobs.filter((candidate) => candidate.steamId64 === steamId64);
+      if (own.length === 0 && playerJobs.length === 0) return Promise.resolve(null);
+      const job = playerJobs.filter((candidate) => candidate.type === 'steam-profile').at(-1);
+      const analysis = playerJobs
+        .filter(
+          (candidate) => candidate.type === 'analysis' && candidate.result?.status === 'succeeded',
+        )
+        .at(-1);
       const latest = own.at(-1);
       return Promise.resolve({
         steamId64,
@@ -143,6 +155,7 @@ export function memoryPlayerStore() {
         snapshotCount: own.length,
         latestFetchedAt: latest?.fetchedAt ?? null,
         latestDataVersion: latest?.dataVersion ?? null,
+        lastAnalyzedAt: analysis?.startedAt ?? null,
         lastSyncJob: job
           ? {
               type: 'steam-profile',
@@ -154,9 +167,9 @@ export function memoryPlayerStore() {
           : null,
       });
     },
-    startSyncJob: (steamId64) => {
+    startSyncJob: (steamId64, type) => {
       const id = `job-${jobs.length + 1}`;
-      jobs.push({ id, steamId64, startedAt: new Date().toISOString(), result: null });
+      jobs.push({ id, steamId64, type, startedAt: new Date().toISOString(), result: null });
       return Promise.resolve(id);
     },
     finishSyncJob: (id, result) => {

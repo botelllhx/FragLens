@@ -86,7 +86,7 @@ function renderPlaytime(cs2: Cs2Playtime, theme: Theme): string[] {
   );
 }
 
-function renderBans(bans: SteamBanStatus | null, { colors, symbols }: Theme): string {
+export function renderBans(bans: SteamBanStatus | null, { colors, symbols }: Theme): string {
   if (!bans) return colors.dim('Informações de banimento indisponíveis.');
 
   const parts: string[] = [];

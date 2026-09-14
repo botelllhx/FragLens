@@ -1,10 +1,17 @@
-import { MatchService, ProfileService, SteamIdentifierResolver } from '@fraglens/core';
+import {
+  AnalysisService,
+  MatchService,
+  ProfileService,
+  SteamIdentifierResolver,
+  StoreGuard,
+} from '@fraglens/core';
 import { AppError, createLogger, loadConfig } from '@fraglens/shared';
 import type { CommandContext } from './program.js';
 
 export interface LocalServices {
   profile: ProfileService;
   matches: MatchService;
+  analysis: AnalysisService;
   /** Fecha as conexões abertas; sem isso o processo não termina. */
   close(): Promise<void>;
 }
@@ -33,19 +40,25 @@ export function createLocalServices(
   const resolver = new SteamIdentifierResolver(steam);
   // A conexão só é aberta na primeira consulta ao banco.
   const database = config.databaseUrl ? ctx.connectDatabase(config.databaseUrl) : undefined;
+  // Um único acesso ao banco para todos os serviços: se ele cair, o timeout acontece uma vez só.
+  const store = new StoreGuard(database?.players, logger);
+
+  const profile = new ProfileService({
+    steam,
+    resolver,
+    store,
+    cacheTtlSeconds: config.steam.profileCacheTtlSeconds,
+    logger,
+  });
+  const matches = new MatchService({
+    resolver,
+    performance: ctx.createPerformanceSource(config.leetify.apiKey, logger),
+  });
 
   return {
-    profile: new ProfileService({
-      steam,
-      resolver,
-      store: database?.players,
-      cacheTtlSeconds: config.steam.profileCacheTtlSeconds,
-      logger,
-    }),
-    matches: new MatchService({
-      resolver,
-      performance: ctx.createPerformanceSource(config.leetify.apiKey, logger),
-    }),
+    profile,
+    matches,
+    analysis: new AnalysisService({ resolver, profiles: profile, matches, store }),
     close: async () => {
       await database?.close().catch(() => undefined);
     },

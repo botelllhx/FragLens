@@ -3,6 +3,7 @@ import type {
   MetricComparison,
   PerformanceBlock,
   PerformanceSummary,
+  PeriodComparison,
   ProgressReport,
   StreakSummary,
 } from '@fraglens/core';
@@ -26,7 +27,7 @@ export function renderProgressReport(
             summaryLines(report.summary, theme),
             theme,
           ),
-          ...section('RECENTE × ANTERIOR', comparisonLines(report, theme), theme),
+          ...section('RECENTE × ANTERIOR', comparisonLines(report.comparison, theme), theme),
           ...section('SEQUÊNCIAS', streakLines(report.streaks, theme), theme),
           ...section('EVOLUÇÃO', blockLines(report.blocks, theme, format), theme),
         ];
@@ -43,7 +44,7 @@ export function renderProgressReport(
   ].join('\n');
 }
 
-function summaryLines(summary: PerformanceSummary, theme: Theme): string[] {
+export function summaryLines(summary: PerformanceSummary, theme: Theme): string[] {
   const { multiKills, utility, trades } = summary;
 
   return keyValues(
@@ -93,8 +94,7 @@ const PERCENT_POINT_METRICS: ReadonlySet<ComparedMetric> = new Set([
   'headshotPercentage',
 ]);
 
-function comparisonLines(report: ProgressReport, theme: Theme): string[] {
-  const { comparison } = report;
+export function comparisonLines(comparison: PeriodComparison, theme: Theme): string[] {
   const recentLabel = `Últimas ${comparison.recentMatches}`;
   const previousLabel = `${comparison.previousMatches} anteriores`;
 
@@ -163,7 +163,7 @@ const OUTCOME_NAMES = {
   tie: ['empate', 'empates'],
 } as const;
 
-function streakLines(result: StreakSummary, theme: Theme): string[] {
+export function streakLines(result: StreakSummary, theme: Theme): string[] {
   let current = theme.symbols.dash;
   if (result.current) {
     const [singular, pluralForm] = OUTCOME_NAMES[result.current.outcome];

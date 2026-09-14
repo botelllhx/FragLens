@@ -8,7 +8,7 @@ O FragLens analisa jogadores de CS2 a partir de uma Steam ID ou URL de perfil: b
 fraglens analyze https://steamcommunity.com/id/usuario
 ```
 
-> **Status:** em desenvolvimento — **Fase 5 concluída** (motor de métricas, `maps` e `progress`). O comando `analyze` ainda não existe; veja o [roadmap](#15-roadmap).
+> **Status:** em desenvolvimento — **Fase 7 concluída** (`fraglens analyze`, ainda sem IA). A Fase 6 (demos) foi adiada; veja o [roadmap](#15-roadmap).
 
 ---
 
@@ -130,6 +130,8 @@ pnpm dev:api
 Disponível hoje (a partir do código-fonte, use `pnpm dev:cli` no lugar de `fraglens`):
 
 ```bash
+fraglens analyze usuario                                  # relatório completo: perfil, desempenho, mapas e tendência
+fraglens analyze usuario --no-ai --limit 30 --json        # sem IA, últimas 30 partidas, em JSON
 fraglens profile 76561198012345678                        # por SteamID64
 fraglens profile https://steamcommunity.com/id/usuario    # por URL
 fraglens profile usuario --json                           # por nome, em JSON
@@ -214,7 +216,7 @@ Códigos de saída: `0` sucesso · `1` falha · `2` uso incorreto.
 
 Referência completa: [docs/cli.md](docs/cli.md). Fórmulas de todas as métricas: [docs/metrics.md](docs/metrics.md).
 
-Comandos planejados: `analyze`, `compare`, `config` — ver [roadmap](#15-roadmap).
+Comandos planejados: `compare`, `config` — ver [roadmap](#15-roadmap).
 
 ## 8. Executando a API
 
@@ -310,20 +312,20 @@ Ferramentas de desenvolvimento (TypeScript e Prisma CLI: Apache-2.0; ESLint, Pre
 
 ## 15. Roadmap
 
-| Fase | Entrega                                                       | Status |
-| ---- | ------------------------------------------------------------- | ------ |
-| 0    | Pesquisa técnica                                              | ✅     |
-| 1    | Bootstrap: monorepo, TypeScript, lint, testes, Docker, README | ✅     |
-| 2    | Resolver de Steam ID + `fraglens profile`                     | ✅     |
-| 3    | Integração Leetify + `fraglens matches`                       | ✅     |
-| 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ✅     |
-| 5    | Motor de métricas determinísticas + `maps` e `progress`       | ✅     |
-| 6    | Processamento de demos enviadas pelo usuário                  | ⏳     |
-| 7    | `fraglens analyze --no-ai`                                    | ⏳     |
-| 8    | Análise com IA                                                | ⏳     |
-| 9    | API HTTP `/v1`                                                | ⏳     |
-| 10   | CLI remota (`npm install -g fraglens`)                        | ⏳     |
-| 11   | Deploy Render + Neon                                          | ⏳     |
-| 12   | Polimento: erros, logs, cache, docs, desempenho               | ⏳     |
+| Fase | Entrega                                                       | Status                            |
+| ---- | ------------------------------------------------------------- | --------------------------------- |
+| 0    | Pesquisa técnica                                              | ✅                                |
+| 1    | Bootstrap: monorepo, TypeScript, lint, testes, Docker, README | ✅                                |
+| 2    | Resolver de Steam ID + `fraglens profile`                     | ✅                                |
+| 3    | Integração Leetify + `fraglens matches`                       | ✅                                |
+| 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ✅                                |
+| 5    | Motor de métricas determinísticas + `maps` e `progress`       | ✅                                |
+| 6    | Processamento de demos enviadas pelo usuário                  | ⏸️ adiada (sem demos para testar) |
+| 7    | `fraglens analyze --no-ai`                                    | ✅                                |
+| 8    | Análise com IA                                                | ⏳                                |
+| 9    | API HTTP `/v1`                                                | ⏳                                |
+| 10   | CLI remota (`npm install -g fraglens`)                        | ⏳                                |
+| 11   | Deploy Render + Neon                                          | ⏳                                |
+| 12   | Polimento: erros, logs, cache, docs, desempenho               | ⏳                                |
 
 Futuro: servidor MCP, dashboard Next.js, vínculo opcional de conta por share code.

@@ -61,6 +61,17 @@ As mesmas fórmulas do resumo, aplicadas às partidas de cada mapa. Os mapas sã
 
 Mapas com **menos de 5 partidas** são marcados como **amostra pequena** (`lowSample: true`, `*` no terminal): os números existem, mas variam muito com uma única partida.
 
+### Melhor e pior mapa
+
+Exibidos em `fraglens analyze` (`mapHighlights` no JSON):
+
+1. Consideram apenas mapas com **pelo menos 5 partidas**.
+2. Ordenam por **win rate**; em caso de empate, por **K/D**; depois, por número de partidas.
+3. Melhor = primeiro da ordem; pior = último.
+4. Com **menos de 2 mapas** elegíveis, não há melhor nem pior (`best` e `worst` são `null`).
+
+É uma comparação de números, não uma recomendação: um mapa "pior" com 45% de vitórias pode estar dentro da variação normal.
+
 ## Tendências (`fraglens progress`)
 
 ### Sequências

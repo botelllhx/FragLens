@@ -42,6 +42,10 @@ export function renderCacheStatus(
   ];
   if (status.expiresAt) rows.push(['Expira em', formatDateTime(status.expiresAt, format)]);
   rows.push(['Snapshots guardados', String(status.snapshotCount)]);
+  rows.push([
+    'Última análise',
+    status.lastAnalyzedAt ? formatDateTime(status.lastAnalyzedAt, format) : 'Nenhuma',
+  ]);
   if (status.firstSeenAt)
     rows.push(['Primeira consulta', formatDateTime(status.firstSeenAt, format)]);
 

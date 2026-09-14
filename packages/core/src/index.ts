@@ -1,5 +1,6 @@
 export type {
   ComparedMetric,
+  MapHighlights,
   MapPerformance,
   MetricComparison,
   PerformanceBlock,
@@ -10,6 +11,14 @@ export type {
   StreakSummary,
   TrendDirection,
 } from '@fraglens/analysis';
+export {
+  AnalysisService,
+  type AiAnalysisResult,
+  type AnalysisNotice,
+  type AnalysisServiceDeps,
+  type AnalyzeQuery,
+  type PlayerAnalysis,
+} from './analysis-service.js';
 export { SteamIdentifierResolver } from './identifier-resolver.js';
 export type {
   AnalyzedMatch,
@@ -19,6 +28,7 @@ export type {
   MatchHistory,
   MatchMetrics,
   MatchOutcome,
+  PerformanceAnalysis,
   PerformanceData,
   PerformanceReportBase,
   PlayerMatch,
@@ -31,6 +41,7 @@ export {
   MAX_MATCHES,
   MatchService,
   RECENT_FORM_SIZE,
+  RECENT_MATCHES_IN_ANALYSIS,
   type MatchQuery,
   type MatchServiceDeps,
 } from './match-service.js';
@@ -62,3 +73,4 @@ export {
   type RefreshResult,
 } from './profile-service.js';
 export { parseSteamIdentifier, type SteamIdentifier } from './steam-id.js';
+export { StoreGuard } from './store-guard.js';

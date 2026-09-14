@@ -143,4 +143,21 @@ describe.skipIf(!databaseUrl)('PrismaPlayerStore (PostgreSQL)', () => {
     });
     expect(info?.lastSyncJob?.finishedAt).not.toBeNull();
   });
+
+  it('informa a última análise concluída sem misturar com os jobs do perfil', async () => {
+    const steamId = uniqueSteamId();
+
+    const analysis = await db.players.startSyncJob(steamId, 'analysis');
+    await db.players.finishSyncJob(analysis, { status: 'succeeded' });
+    const failedAnalysis = await db.players.startSyncJob(steamId, 'analysis');
+    await db.players.finishSyncJob(failedAnalysis, {
+      status: 'failed',
+      errorCode: 'INTERNAL',
+      errorMessage: 'falha',
+    });
+
+    const info = await db.players.getCacheInfo(steamId);
+    expect(info?.lastAnalyzedAt).not.toBeNull();
+    expect(info?.lastSyncJob).toBeNull();
+  });
 });

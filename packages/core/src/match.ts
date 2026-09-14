@@ -1,4 +1,5 @@
 import type {
+  MapHighlights,
   MapPerformance,
   MatchStats,
   Outcome,
@@ -118,4 +119,23 @@ export interface ProgressReport extends PerformanceReportBase {
   comparison: PeriodComparison;
   streaks: StreakSummary;
   blocks: PerformanceBlock[];
+}
+
+/** Tudo o que a análise completa usa das partidas, calculado a partir de um único carregamento. */
+export interface PerformanceAnalysis extends PerformanceReportBase {
+  leetify: {
+    privacyMode: string | null;
+    totalMatches: number | null;
+    ratings: LeetifyProfileRatings;
+  };
+  summary: PerformanceSummary;
+  minMapSample: number;
+  maps: MapPerformance[];
+  mapHighlights: MapHighlights;
+  recentForm: RecentForm;
+  comparison: PeriodComparison;
+  streaks: StreakSummary;
+  blocks: PerformanceBlock[];
+  /** As partidas mais recentes, com métricas por partida. */
+  recentMatches: AnalyzedMatch[];
 }

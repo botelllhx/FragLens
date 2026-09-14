@@ -1,4 +1,10 @@
-import type { AnalyzedMatch, MatchHistory, MatchOutcome, PlayerRanks } from '@fraglens/core';
+import type {
+  AnalyzedMatch,
+  MatchHistory,
+  MatchOutcome,
+  PlayerRanks,
+  RecentForm,
+} from '@fraglens/core';
 import {
   formatDate,
   formatDateTime,
@@ -42,7 +48,7 @@ export function renderMatchHistory(
     ...banner(theme),
     '',
     ...section('JOGADOR', player, theme),
-    ...section(`FORMA RECENTE`, renderForm(history, theme), theme),
+    ...section(`FORMA RECENTE`, formLines(history.recentForm, theme), theme),
     ...section(
       `PARTIDAS (${history.matches.length} de ${history.availableMatches})`,
       renderMatches(history.matches, theme, format),
@@ -56,7 +62,7 @@ export function renderMatchHistory(
   ].join('\n');
 }
 
-function rankRows(ranks: PlayerRanks): [string, string][] {
+export function rankRows(ranks: PlayerRanks): [string, string][] {
   const faceit =
     ranks.faceitLevel === null
       ? 'Indisponível'
@@ -73,8 +79,8 @@ function rankRows(ranks: PlayerRanks): [string, string][] {
   ];
 }
 
-function renderForm(history: MatchHistory, theme: Theme): string[] {
-  const { outcomes, wins, losses, ties } = history.recentForm;
+export function formLines(form: RecentForm, theme: Theme): string[] {
+  const { outcomes, wins, losses, ties } = form;
   if (outcomes.length === 0) return [theme.colors.dim('Sem partidas para calcular.')];
 
   const letters = outcomes.map((outcome) => styleOutcome(outcome, theme)(OUTCOME_LETTERS[outcome]));

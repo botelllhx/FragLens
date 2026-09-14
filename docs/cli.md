@@ -29,6 +29,94 @@ fraglens profile usuario --json > perfil.json
 | `1`    | Falha (jogador não encontrado, Steam ou Leetify indisponível, configuração inválida, banco inacessível em `refresh`/`cache`, `doctor` com problemas) |
 | `2`    | Uso incorreto (comando ou opção desconhecidos, argumento ausente)                                                                                    |
 
+## `fraglens analyze <jogador>`
+
+Relatório completo em uma única consulta: perfil Steam, ranks, desempenho, forma recente, mapas (com melhor e pior mapa), tendência e sequências.
+
+| Opção         | Efeito                                                        |
+| ------------- | ------------------------------------------------------------- |
+| `--limit <n>` | Partidas mais recentes consideradas, de 1 a 100 (padrão: 100) |
+| `--refresh`   | Ignora o cache do perfil Steam                                |
+| `--no-ai`     | Gera a análise sem IA                                         |
+
+Seções:
+
+| Seção          | Conteúdo                                                                                  | Fonte                                                            |
+| -------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Jogador        | Nome, SteamID64, URL, país, horas de CS2, banimentos, Premier e FACEIT                    | Steam (com cache) e Leetify                                      |
+| Desempenho     | Resumo do período (mesmo do `progress`)                                                   | Calculado pelo FragLens                                          |
+| Forma recente  | Resultado das 10 partidas mais recentes                                                   | Calculado pelo FragLens                                          |
+| Mapas          | Tabela por mapa e melhor/pior mapa                                                        | Calculado pelo FragLens ([regra](metrics.md#melhor-e-pior-mapa)) |
+| Tendência      | Últimas 10 × 20 anteriores                                                                | Calculado pelo FragLens                                          |
+| Sequências     | Atual e maiores sequências                                                                | Calculado pelo FragLens                                          |
+| Análise com IA | Por enquanto, informa que não há provedor configurado ou que foi desativada com `--no-ai` | Fase 8                                                           |
+
+```text
+MAPAS
+
+Mapa     Partidas    V-D-E  Vitórias   K/D   ADR    HS%  Kills méd.  Mortes méd.
+Dust2          47  23-18-6     48,9%  0,76  65,9  37,9%        11,9         15,6
+Mirage         24  12-12-0     50,0%  0,75  61,3  36,9%        11,0         14,5
+Inferno        22   10-9-3     45,5%  0,84  65,4  31,7%        11,8         14,0
+
+▲ Melhor mapa: Mirage (50,0% de vitórias · K/D 0,75 · 24 partidas)
+▼ Pior mapa: Inferno (45,5% de vitórias · K/D 0,84 · 22 partidas)
+```
+
+**Requisições:** o jogador é resolvido uma única vez; a Leetify é consultada 2 vezes (perfil e partidas) e a Steam só quando o perfil não está em cache.
+
+**Quando a Leetify não tem dados** (ou está indisponível), o relatório sai assim mesmo com o perfil Steam e um aviso na seção Desempenho, com código de saída `0`. Falha na Steam interrompe a análise.
+
+**Registro:** com banco configurado, cada análise fica registrada (apenas data e status, [ADR 0010](decisions/0010-registro-de-analises.md)) e aparece como "Última análise" em `fraglens cache`.
+
+### Saída JSON
+
+```json
+{
+  "steamId64": "76561198012345678",
+  "profile": {
+    "summary": { "personaName": "Jogador", "…": "…" },
+    "cs2": { "…": "…" },
+    "cached": true,
+    "…": "…"
+  },
+  "performance": {
+    "playerName": "Jogador",
+    "ranks": { "premier": null, "faceitLevel": null, "faceitElo": null, "wingman": null },
+    "sampleSize": 100,
+    "period": { "from": "2026-05-15T19:02:00.000Z", "to": "2026-09-13T21:02:56.000Z" },
+    "summary": { "matches": 100, "wins": 47, "killDeathRatio": 0.79, "…": "…" },
+    "maps": [{ "map": "de_dust2", "matches": 47, "winRate": 48.9, "…": "…" }],
+    "mapHighlights": {
+      "eligibleMaps": 3,
+      "best": { "map": "de_mirage", "…": "…" },
+      "worst": { "map": "de_inferno", "…": "…" }
+    },
+    "recentForm": { "outcomes": ["loss", "win"], "wins": 7, "losses": 2, "ties": 1 },
+    "comparison": { "sufficient": true, "metrics": { "…": "…" } },
+    "streaks": {
+      "current": { "outcome": "loss", "length": 1 },
+      "longestWinStreak": 4,
+      "longestLossStreak": 4
+    },
+    "blocks": [{ "matches": 10, "winRate": 50, "…": "…" }],
+    "recentMatches": [{ "map": "de_mirage", "outcome": "loss", "metrics": { "…": "…" }, "…": "…" }],
+    "leetify": { "privacyMode": "public", "totalMatches": 480, "ratings": { "…": "…" } },
+    "attribution": "Dados fornecidos pela Leetify (Data Provided by Leetify)"
+  },
+  "notices": [],
+  "aiAnalysis": { "status": "not-configured", "message": "Nenhum provedor de IA configurado." },
+  "analyzedAt": "2026-09-14T19:06:00.000Z"
+}
+```
+
+| Campo                       | Observação                                                                         |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `performance`               | `null` quando não foi possível obter as partidas; o motivo fica em `notices`       |
+| `notices[]`                 | `{ code, message, hints }`, ex.: `NOT_FOUND` (Leetify sem dados) ou `RATE_LIMITED` |
+| `aiAnalysis.status`         | `not-configured` ou `disabled` (com `--no-ai`)                                     |
+| `performance.recentMatches` | As 10 partidas mais recentes com métricas por partida                              |
+
 ## `fraglens profile <jogador>`
 
 Exibe o perfil Steam: nome, SteamID64, URL, visibilidade, país, data de criação da conta, horas de CS2 e banimentos.
@@ -327,6 +415,7 @@ Situação             ✓ Atualizado
 Validade do cache    24 h
 Expira em            15/09/2026, 15:29
 Snapshots guardados  3
+Última análise       14/09/2026, 15:31
 Primeira consulta    14/09/2026, 15:02
 
 Última sincronização
