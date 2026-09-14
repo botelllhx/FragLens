@@ -30,11 +30,10 @@ describe('fraglens matches', () => {
 
     expect(exitCode).toBe(0);
     expect(stderr).toBe('');
-    expect(stdout).toMatch(/Premier\s+15\.234/);
-    expect(stdout).toMatch(/FACEIT\s+Nível 8 · 1\.850 Elo/);
-    expect(stdout).toContain('V D E');
-    expect(stdout).toContain('Últimas 3: 1 V · 1 D · 1 E');
-    expect(stdout).toContain('PARTIDAS (3 de 3)');
+    expect(stdout).toContain('Premier 15.234 · FACEIT nível 8 (1.850 Elo)');
+    expect(stdout).toContain('── FORMA RECENTE · últimas 3 ──');
+    expect(stdout).toContain('V D E   1V 1D 1E');
+    expect(stdout).toContain('── PARTIDAS · 3 de 3 ──');
     expect(stdout).toMatch(
       /10\/09\/2026\s+Mirage\s+Matchmaking\s+13-7\s+V\s+16-13-4\s+1,23\s+72,7\s+81,3%/,
     );
@@ -46,7 +45,7 @@ describe('fraglens matches', () => {
   it('respeita --limit', async () => {
     const { stdout } = await runCli(['matches', STEAM_ID, '--limit', '2'], withMatches(MATCHES));
 
-    expect(stdout).toContain('PARTIDAS (2 de 3)');
+    expect(stdout).toContain('PARTIDAS · 2 de 3');
     expect(stdout).not.toContain('Office');
   });
 
@@ -65,8 +64,7 @@ describe('fraglens matches', () => {
       }),
     );
 
-    expect(stdout).toMatch(/Premier\s+Indisponível/);
-    expect(stdout).toMatch(/FACEIT\s+Indisponível/);
+    expect(stdout).toContain('Premier — · FACEIT —');
   });
 
   it('informa quando não há partidas', async () => {

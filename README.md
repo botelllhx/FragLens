@@ -149,59 +149,40 @@ fraglens --help                                           # ajuda
 Exemplo de `fraglens profile`:
 
 ```text
-FRAGLENS
-Inteligência de jogadores de Counter-Strike 2
+ FRAGLENS  Jogador · 76561198012345678
+ https://steamcommunity.com/id/usuario/
 
-────────────────────────────────────────────────
+── CONTA ───────────────────────────────────────────────────────────────────────
+  Visibilidade  Público
+  País          Brasil
+  Conta criada  27/11/2010
 
-JOGADOR
+── CS2 ─────────────────────────────────────────────────────────────────────────
+  Horas totais       1.523,5 h
+  Últimas 2 semanas  18,2 h
 
-Jogador
+── BANIMENTOS ──────────────────────────────────────────────────────────────────
+  ✓ Nenhum banimento registrado
 
-SteamID64     76561198012345678
-Perfil        https://steamcommunity.com/id/usuario/
-Visibilidade  Público
-País          Brasil
-Conta criada  27/11/2010
-
-────────────────────────────────────────────────
-
-CS2
-
-Horas totais       1.523,5 h
-Últimas 2 semanas  18,2 h
-
-────────────────────────────────────────────────
-
-BANIMENTOS
-
-✓ Nenhum banimento registrado
-
-────────────────────────────────────────────────
-Dados da Steam obtidos em 14/09/2026, 14:37
+ dados da Steam obtidos em 14/09/2026, 14:37
 ```
 
 Exemplo de `fraglens matches` (trecho):
 
 ```text
-FORMA RECENTE
+── FORMA RECENTE · últimas 10 ──────────────────────────────────────────────────
+  ■ ■ ■ ■ ■ ■ ■ ■ ■ ■   6V 3D 1E  (mais recente à esquerda)
 
-V V D V E D V V V D
+── PARTIDAS · 20 de 100 ────────────────────────────────────────────────────────
+  Data        Mapa     Origem       Placar  Res.    K-D-A   K/D   ADR    HS%
+  13/09/2026  Mirage   Matchmaking   13-11  V     21-15-4  1,40  88,2  47,6%
+  12/09/2026  Inferno  Competitivo    9-13  D     14-18-3  0,78  64,5  35,7%
 
-Últimas 10: 6 V · 3 D · 1 E
-
-────────────────────────────────────────────────
-
-PARTIDAS (20 de 100)
-
-Data        Mapa     Origem       Placar  Res.    K-D-A   K/D   ADR    HS%
-13/09/2026  Mirage   Matchmaking   13-11  V     21-15-4  1,40  88,2  47,6%
-12/09/2026  Inferno  Competitivo    9-13  D     14-18-3  0,78  64,5  35,7%
-
-────────────────────────────────────────────────
-Dados fornecidos pela Leetify (Data Provided by Leetify)
-K-D-A, ADR e HS% calculados pelo FragLens a partir dos dados de cada partida.
+ Dados fornecidos pela Leetify (Data Provided by Leetify)
+ K/D, ADR e HS% calculados pelo FragLens · consultado em 14/09/2026, 14:37
 ```
+
+Enquanto consulta, a CLI mostra um indicador de carregamento (só em terminal interativo), e as linhas se ajustam à largura do terminal. Detalhes em [docs/cli.md](docs/cli.md#aparência-no-terminal).
 
 Formatos de jogador aceitos: SteamID64, `STEAM_0:X:Y`, `[U:1:Z]`, URL `/profiles/`, URL `/id/` e o nome da URL personalizada. URLs de outros sites são recusadas.
 

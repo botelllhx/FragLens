@@ -2,6 +2,8 @@ import type { Command } from 'commander';
 import { createLogger } from '@fraglens/shared';
 import { runDoctor, type CheckStatus, type DoctorReport } from '../doctor/checks.js';
 import type { CommandContext, GlobalOptions } from '../program.js';
+import { header, section } from '../ui/layout.js';
+import { spinnerEnabled, withSpinner } from '../ui/spinner.js';
 import type { Theme } from '../ui/theme.js';
 
 export function registerDoctorCommand(program: Command, ctx: CommandContext): void {
@@ -9,18 +11,23 @@ export function registerDoctorCommand(program: Command, ctx: CommandContext): vo
     .command('doctor')
     .description('Verifica se o ambiente está pronto para usar o FragLens')
     .action(async (_options: unknown, command: Command) => {
-      const { json } = command.optsWithGlobals<GlobalOptions>();
+      const flags = command.optsWithGlobals<GlobalOptions>();
       const logger = createLogger({ level: 'silent' });
 
-      const report = await runDoctor({
-        env: ctx.env,
-        nodeVersion: ctx.nodeVersion,
-        createSteamGateway: (apiKey) => ctx.createSteamGateway(apiKey, logger),
-        connectDatabase: (databaseUrl) => ctx.connectDatabase(databaseUrl),
-      });
+      const report = await withSpinner(
+        'Verificando o ambiente',
+        { io: ctx.io, theme: ctx.theme, enabled: spinnerEnabled(ctx.interactive, flags) },
+        () =>
+          runDoctor({
+            env: ctx.env,
+            nodeVersion: ctx.nodeVersion,
+            createSteamGateway: (apiKey) => ctx.createSteamGateway(apiKey, logger),
+            connectDatabase: (databaseUrl) => ctx.connectDatabase(databaseUrl),
+          }),
+      );
 
       ctx.io.stdout(
-        json ? `${JSON.stringify(report, null, 2)}\n` : renderDoctorReport(report, ctx.theme),
+        flags.json ? `${JSON.stringify(report, null, 2)}\n` : renderDoctorReport(report, ctx.theme),
       );
       if (!report.ready) ctx.reportExitCode(1);
     });
@@ -28,15 +35,17 @@ export function registerDoctorCommand(program: Command, ctx: CommandContext): vo
 
 export function renderDoctorReport(report: DoctorReport, theme: Theme): string {
   const { colors, symbols } = theme;
-  const lines = ['', colors.bold('FRAGLENS · DIAGNÓSTICO'), ''];
 
-  for (const check of report.checks) {
+  const checks = report.checks.map((check) => {
     const detail = check.detail ? colors.dim(` ${symbols.dash} ${check.detail}`) : '';
-    lines.push(`${statusSymbol(check.status, theme)} ${check.label}${detail}`);
-  }
+    return `${statusSymbol(check.status, theme)} ${check.label}${detail}`;
+  });
 
-  lines.push('', summary(report, theme), '');
-  return lines.join('\n');
+  return [
+    ...header(colors.bold('diagnóstico do ambiente'), [], theme),
+    ...section('VERIFICAÇÕES', [...checks, '', summary(report, theme)], theme),
+    '',
+  ].join('\n');
 }
 
 function statusSymbol(status: CheckStatus, { colors, symbols }: Theme): string {

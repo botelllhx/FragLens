@@ -35,28 +35,32 @@ describe('fraglens progress', () => {
 
     expect(exitCode).toBe(0);
     expect(stderr).toBe('');
-    expect(stdout).toContain('RESUMO (25 partidas)');
+    expect(stdout).toContain('── DESEMPENHO · 25 partidas ·');
+    expect(stdout).toMatch(/VITÓRIAS\s+K\/D\s+ADR\s+HS%\s+KDA/);
     // 18 vitórias (10 recentes + 8 pares entre 10 e 24) e 7 derrotas.
-    expect(stdout).toMatch(/Resultado\s+18 V · 7 D · 0 E \(72,0% de vitórias\)/);
-    // (10 × 25 + 15 × 10) kills ÷ (25 × 13) mortes = 400 ÷ 325.
-    expect(stdout).toMatch(/K\/D\s+1,23/);
-    // Recentes: 10 de 10 vitórias; anteriores: 8 de 15.
-    expect(stdout).toMatch(/Vitórias\s+100,0%\s+53,3%\s+▲ \+46,7 p\.p\./);
-    // 250 ÷ 130 = 1,92 contra 150 ÷ 195 = 0,77.
-    expect(stdout).toMatch(/K\/D\s+1,92\s+0,77\s+▲ \+1,15/);
-    expect(stdout).toMatch(/ADR\s+72,7\s+72,7\s+→ 0,0/);
+    // (10 × 25 + 15 × 10) kills ÷ (25 × 13) mortes = 400 ÷ 325 = 1,23.
+    expect(stdout).toMatch(/72,0%\s+1,23\s+72,7/);
+    expect(stdout).toMatch(/Resultado\s+18V 7D 0E/);
+    expect(stdout).toContain('── TENDÊNCIA · últimas 10 × 15 anteriores ──');
+    // Anteriores: 8 de 15 vitórias; recentes: 10 de 10.
+    expect(stdout).toMatch(/Vitórias\s+53,3%\s+→\s+100,0%\s+▲ \+46,7 p\.p\./);
+    // 150 ÷ 195 = 0,77 contra 250 ÷ 130 = 1,92.
+    expect(stdout).toMatch(/K\/D\s+0,77\s+→\s+1,92\s+▲ \+1,15/);
+    expect(stdout).toMatch(/ADR\s+72,7\s+→\s+72,7\s+= estável \(0,0\)/);
     // A partida de índice 10 também é vitória: sequência atual de 11.
-    expect(stdout).toMatch(/Sequência atual\s+11 vitórias/);
-    expect(stdout).toMatch(/Maior sequência de derrotas\s+1/);
-    expect(stdout).toMatch(/Partidas\s+Vitórias/);
-    expect(stdout).toContain('* Bloco com menos de 10 partidas.');
-    expect(stdout).toContain('Métricas calculadas pelo FragLens');
+    expect(stdout).toContain('Sequência atual: 11 vitórias · maiores sequências: 11V / 1D');
+    expect(stdout).toMatch(/Período\s+Jogos\s+Vitórias/);
+    expect(stdout).toContain('* bloco com menos de 10 partidas');
+    expect(stdout).toContain('métricas calculadas pelo FragLens');
   });
 
   it('informa dados insuficientes para a comparação', async () => {
     const { stdout } = await runCli(['progress', STEAM_ID, '--limit', '12'], withMatches(MATCHES));
 
-    expect(stdout).toContain('Dados insuficientes para comparar: últimas 10 × 2 anteriores.');
+    expect(stdout).toContain(
+      'Dados insuficientes para comparar (10 recentes × 2 anteriores; mínimo de 5 em cada período).',
+    );
+    expect(stdout).toContain('── TENDÊNCIA ──');
   });
 
   it('usa símbolos ASCII sem suporte a unicode', async () => {
@@ -65,9 +69,12 @@ describe('fraglens progress', () => {
       unicode: false,
     });
 
-    expect(stdout).toMatch(/Vitórias\s+100,0%\s+53,3%\s+\+ \+46,7 p\.p\./);
+    expect(stdout).toMatch(/Vitórias\s+53,3%\s+->\s+100,0%\s+\+ \+46,7 p\.p\./);
+    expect(stdout).toContain('-- DESEMPENHO');
     expect(stdout).not.toContain('▲');
     expect(stdout).not.toContain('█');
+    expect(stdout).not.toContain('─');
+    expect(stdout).not.toContain('→');
   });
 
   it('com --json retorna o relatório estruturado', async () => {

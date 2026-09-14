@@ -44,28 +44,42 @@ describe('fraglens analyze', () => {
     expect(exitCode).toBe(0);
     expect(stderr).toBe('');
 
-    expect(stdout).toContain('Jogador Teste');
-    expect(stdout).toMatch(/Horas de CS2\s+15\.387,4 h \(24,3 h nas últimas 2 semanas\)/);
-    expect(stdout).toMatch(/Banimentos\s+✓ Nenhum banimento registrado/);
-    expect(stdout).toMatch(/Premier\s+15\.234/);
+    expect(stdout).toContain('FRAGLENS  Jogador Teste · 76561198034202275');
+    expect(stdout).toContain('Brasil · 15.387,4 h de CS2 (24,3 h em 2 semanas) · ✓ sem banimentos');
+    expect(stdout).toContain('Premier 15.234 · FACEIT nível 8 (1.850 Elo)');
 
-    expect(stdout).toMatch(/Base: 12 partidas · de 19\/09\/2026 a 30\/09\/2026/);
+    expect(stdout).toContain('── DESEMPENHO · 12 partidas · 19/09/2026 a 30/09/2026 ──');
+    expect(stdout).toMatch(/VITÓRIAS\s+K\/D\s+ADR\s+HS%\s+KDA/);
     // 5 vitórias (4 em Mirage, 1 em Inferno) e 7 derrotas.
-    expect(stdout).toMatch(/Resultado\s+5 V · 7 D · 0 E \(41,7% de vitórias\)/);
-    expect(stdout).toContain('Últimas 10: 5 V · 5 D · 0 E');
+    expect(stdout).toMatch(/41,7%\s+1,23\s+72,7\s+81,3%\s+1,54/);
+    expect(stdout).toContain('5V 7D 0E · ');
+    expect(stdout).toContain('── FORMA RECENTE · últimas 10 ──');
+    expect(stdout).toContain('V V V V D D V D D D   5V 5D 0E');
 
-    expect(stdout).toMatch(/Mirage\s+6\s+4-2-0\s+66,7%/);
-    expect(stdout).toMatch(/Melhor mapa: Mirage \(66,7% de vitórias · K\/D 1,23 · 6 partidas\)/);
-    expect(stdout).toMatch(/Pior mapa: Inferno \(20,0% de vitórias · K\/D 1,23 · 5 partidas\)/);
+    expect(stdout).toMatch(
+      /Mirage\s+6\s+4-2-0\s+█{7}░{3}\s+66,7%\s+1,23\s+72,7\s+81,3%\s+▲ melhor/,
+    );
+    expect(stdout).toMatch(/Inferno\s+5\s+1-4-0\s+█{2}░{8}\s+20,0%\s+1,23\s+72,7\s+81,3%\s+▼ pior/);
+    expect(stdout).toMatch(/Ancient\*\s+1\s+0-1-0/);
+    expect(stdout).toContain('* menos de 5 partidas no mapa: amostra pequena');
 
     // 10 recentes × apenas 2 anteriores: comparação indisponível.
-    expect(stdout).toContain('Dados insuficientes para comparar');
-    expect(stdout).toMatch(/Sequência atual\s+4 vitórias/);
+    expect(stdout).toContain(
+      'Dados insuficientes para comparar (10 recentes × 2 anteriores; mínimo de 5 em cada período).',
+    );
+    // Derrotas nos índices 7 a 11 (Inferno e Ancient): maior sequência de 5.
+    expect(stdout).toContain('Sequência atual: 4 vitórias · maiores sequências: 4V / 5D');
 
-    expect(stdout).toContain('ANÁLISE COM IA');
-    expect(stdout).toContain('Nenhum provedor de IA configurado (AI_PROVIDER).');
+    expect(stdout).toContain('── IA ──');
+    expect(stdout).toContain('Nenhum provedor de IA configurado (AI_PROVIDER)');
     expect(stdout).toContain('Dados fornecidos pela Leetify');
-    expect(stdout).toContain('Análise gerada em');
+    expect(stdout).toContain('análise gerada em');
+  });
+
+  it('é bem mais curto que a versão anterior do relatório', async () => {
+    const { stdout } = await runCli(['analyze', STEAM_ID], withMatches(MATCHES));
+
+    expect(stdout.split('\n').length).toBeLessThanOrEqual(45);
   });
 
   it('com --no-ai informa que a IA foi desativada', async () => {

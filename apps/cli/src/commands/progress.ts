@@ -23,7 +23,12 @@ export function registerProgressCommand(program: Command, ctx: CommandContext): 
     .action(async (player: string, options: { limit: number }, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
 
-      const report = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Calculando a evolução do jogador',
+      };
+      const report = await withLocalServices(ctx, loading, (services) =>
         services.matches.getProgressReport(player, { limit: options.limit }),
       );
 

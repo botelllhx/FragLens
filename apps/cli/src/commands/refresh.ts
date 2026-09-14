@@ -11,7 +11,12 @@ export function registerRefreshCommand(program: Command, ctx: CommandContext): v
     .action(async (player: string, _options: unknown, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
 
-      const result = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Atualizando perfil na Steam',
+      };
+      const result = await withLocalServices(ctx, loading, (services) =>
         services.profile.refresh(player),
       );
 

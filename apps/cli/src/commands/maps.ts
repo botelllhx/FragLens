@@ -23,7 +23,12 @@ export function registerMapsCommand(program: Command, ctx: CommandContext): void
     .action(async (player: string, options: { limit: number }, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
 
-      const report = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Calculando desempenho por mapa',
+      };
+      const report = await withLocalServices(ctx, loading, (services) =>
         services.matches.getMapReport(player, { limit: options.limit }),
       );
 

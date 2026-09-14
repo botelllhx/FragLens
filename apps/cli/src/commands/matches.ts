@@ -24,7 +24,12 @@ export function registerMatchesCommand(program: Command, ctx: CommandContext): v
     )
     .action(async (player: string, options: { limit: number }, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
-      const history = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Buscando partidas na Leetify',
+      };
+      const history = await withLocalServices(ctx, loading, (services) =>
         services.matches.getMatchHistory(player, { limit: options.limit }),
       );
 

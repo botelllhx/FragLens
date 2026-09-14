@@ -1,6 +1,6 @@
 import type { ProfileCacheStatus, SyncJobSummary } from '@fraglens/core';
 import { formatDateTime, type FormatOptions } from './format.js';
-import { keyValues, rule } from './layout.js';
+import { footer, header, keyValues, section } from './layout.js';
 import type { Theme } from './theme.js';
 
 export function renderCacheStatus(
@@ -10,29 +10,31 @@ export function renderCacheStatus(
   now: Date,
 ): string {
   const { colors } = theme;
-  const header = ['', colors.bold('FRAGLENS · CACHE'), '', rule(theme), ''];
-  const footer = [
-    '',
-    rule(theme),
-    colors.dim('Dados da Leetify não são guardados: são buscados a cada consulta.'),
-    '',
-  ];
+  const title = `${colors.bold('cache do perfil')} ${colors.dim(`· ${status.steamId64}`)}`;
 
+  return [
+    ...header(title, [], theme),
+    ...section('PERFIL STEAM', profileLines(status, theme, format, now), theme),
+    ...lastJobSection(status.lastSyncJob, theme, format),
+    ...footer(['Dados da Leetify não são guardados: são buscados a cada consulta.'], theme),
+  ].join('\n');
+}
+
+function profileLines(
+  status: ProfileCacheStatus,
+  theme: Theme,
+  format: FormatOptions,
+  now: Date,
+): string[] {
   if (!status.stored || status.lastFetchedAt === null) {
     return [
-      ...header,
-      ...keyValues([['SteamID64', status.steamId64]], theme),
-      '',
       'Nenhum perfil guardado para este jogador.',
-      colors.dim('Ele será salvo na próxima consulta com fraglens profile.'),
-      ...lastJobLines(status.lastSyncJob, theme, format),
-      ...footer,
-    ].join('\n');
+      theme.colors.dim('Ele será salvo na próxima consulta com fraglens profile.'),
+    ];
   }
 
   const ageMs = now.getTime() - Date.parse(status.lastFetchedAt);
   const rows: [string, string][] = [
-    ['SteamID64', status.steamId64],
     ['Situação', situation(status, theme)],
     [
       'Última atualização',
@@ -46,15 +48,11 @@ export function renderCacheStatus(
     'Última análise',
     status.lastAnalyzedAt ? formatDateTime(status.lastAnalyzedAt, format) : 'Nenhuma',
   ]);
-  if (status.firstSeenAt)
+  if (status.firstSeenAt) {
     rows.push(['Primeira consulta', formatDateTime(status.firstSeenAt, format)]);
+  }
 
-  return [
-    ...header,
-    ...keyValues(rows, theme),
-    ...lastJobLines(status.lastSyncJob, theme, format),
-    ...footer,
-  ].join('\n');
+  return keyValues(rows, theme);
 }
 
 function situation(status: ProfileCacheStatus, { colors, symbols }: Theme): string {
@@ -71,7 +69,7 @@ const JOB_STATUS_LABELS: Readonly<Record<SyncJobSummary['status'], string>> = {
   failed: 'falhou',
 };
 
-function lastJobLines(job: SyncJobSummary | null, theme: Theme, format: FormatOptions): string[] {
+function lastJobSection(job: SyncJobSummary | null, theme: Theme, format: FormatOptions): string[] {
   if (!job) return [];
   const { colors, symbols } = theme;
   const symbol =
@@ -82,11 +80,13 @@ function lastJobLines(job: SyncJobSummary | null, theme: Theme, format: FormatOp
         : colors.yellow(symbols.warn);
   const error = job.errorCode ? ` (${job.errorCode})` : '';
 
-  return [
-    '',
-    colors.bold('Última sincronização'),
-    `${symbol} Perfil Steam: ${JOB_STATUS_LABELS[job.status]}${error} em ${formatDateTime(job.startedAt, format)}`,
-  ];
+  return section(
+    'ÚLTIMA SINCRONIZAÇÃO',
+    [
+      `${symbol} Perfil Steam: ${JOB_STATUS_LABELS[job.status]}${error} em ${formatDateTime(job.startedAt, format)}`,
+    ],
+    theme,
+  );
 }
 
 export function formatDuration(ms: number): string {

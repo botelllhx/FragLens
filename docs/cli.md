@@ -39,29 +39,57 @@ Relatório completo em uma única consulta: perfil Steam, ranks, desempenho, for
 | `--refresh`   | Ignora o cache do perfil Steam                                |
 | `--no-ai`     | Gera a análise sem IA                                         |
 
-Seções:
+Partes do relatório:
 
-| Seção          | Conteúdo                                                                                  | Fonte                                                            |
-| -------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Jogador        | Nome, SteamID64, URL, país, horas de CS2, banimentos, Premier e FACEIT                    | Steam (com cache) e Leetify                                      |
-| Desempenho     | Resumo do período (mesmo do `progress`)                                                   | Calculado pelo FragLens                                          |
-| Forma recente  | Resultado das 10 partidas mais recentes                                                   | Calculado pelo FragLens                                          |
-| Mapas          | Tabela por mapa e melhor/pior mapa                                                        | Calculado pelo FragLens ([regra](metrics.md#melhor-e-pior-mapa)) |
-| Tendência      | Últimas 10 × 20 anteriores                                                                | Calculado pelo FragLens                                          |
-| Sequências     | Atual e maiores sequências                                                                | Calculado pelo FragLens                                          |
-| Análise com IA | Por enquanto, informa que não há provedor configurado ou que foi desativada com `--no-ai` | Fase 8                                                           |
+| Parte         | Conteúdo                                                                                               | Fonte                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Cabeçalho     | Nome, SteamID64, país, horas de CS2, banimentos, Premier e FACEIT                                      | Steam (com cache) e Leetify                                      |
+| Desempenho    | Cartões com vitórias, K/D, ADR, HS% e KDA, e uma linha com resultado, kills por round, rounds e trades | Calculado pelo FragLens                                          |
+| Forma recente | Resultado das 10 partidas mais recentes                                                                | Calculado pelo FragLens                                          |
+| Mapas         | Tabela por mapa com barra de win rate e melhor/pior mapa marcados                                      | Calculado pelo FragLens ([regra](metrics.md#melhor-e-pior-mapa)) |
+| Tendência     | Últimas 10 × 20 anteriores (`anterior → recente`), sequência atual e maiores sequências                | Calculado pelo FragLens                                          |
+| IA            | Por enquanto, informa que não há provedor configurado ou que foi desativada com `--no-ai`              | Fase 8                                                           |
 
 ```text
-MAPAS
+ FRAGLENS  Jogador · 76561198012345678
+ Brasil · 509 h de CS2 (10,9 h em 2 semanas) · ✓ sem banimentos
+ Premier — · FACEIT —
 
-Mapa     Partidas    V-D-E  Vitórias   K/D   ADR    HS%  Kills méd.  Mortes méd.
-Dust2          47  23-18-6     48,9%  0,76  65,9  37,9%        11,9         15,6
-Mirage         24  12-12-0     50,0%  0,75  61,3  36,9%        11,0         14,5
-Inferno        22   10-9-3     45,5%  0,84  65,4  31,7%        11,8         14,0
+── DESEMPENHO · 100 partidas · 15/05/2026 a 13/09/2026 ─────────────────────────
+  VITÓRIAS   K/D    ADR    HS%     KDA
+  47,0%      0,79   65,3   36,4%   1,07
+  47V 43D 10E · 0,59 kills por round · 49,1% dos rounds vencidos · trades 45,0%
 
-▲ Melhor mapa: Mirage (50,0% de vitórias · K/D 0,75 · 24 partidas)
-▼ Pior mapa: Inferno (45,5% de vitórias · K/D 0,84 · 22 partidas)
+── FORMA RECENTE · últimas 10 ──────────────────────────────────────────────────
+  ■ ■ ■ ■ ■ ■ ■ ■ ■ ■   7V 2D 1E  (mais recente à esquerda)
+
+── MAPAS ───────────────────────────────────────────────────────────────────────
+  Mapa     Jogos    V-D-E  Vitórias            K/D   ADR    HS%
+  Dust2       47  23-18-6  █████░░░░░  48,9%  0,76  65,9  37,9%
+  Mirage      24  12-12-0  █████░░░░░  50,0%  0,75  61,3  36,9%  ▲ melhor
+  Inferno     22   10-9-3  █████░░░░░  45,5%  0,84  65,4  31,7%  ▼ pior
+  Cache*       4    2-2-0  █████░░░░░  50,0%  1,26  77,1  44,1%
+
+  * menos de 5 partidas no mapa: amostra pequena
+
+── TENDÊNCIA · últimas 10 × 20 anteriores ──────────────────────────────────────
+  Vitórias  30,0%  →  70,0%  ▲ +40,0 p.p.
+  K/D        0,78  →   0,88  ▲ +0,10
+  ADR        67,7  →   66,6  = estável (-1,1)
+  HS%       39,3%  →  35,3%  ▼ -4,0 p.p.
+
+  Sequência atual: 1 derrota · maiores sequências: 4V / 4D
+  evolução completa: fraglens progress <jogador>
+
+── IA ──────────────────────────────────────────────────────────────────────────
+  Nenhum provedor de IA configurado (AI_PROVIDER) · as métricas acima não usam IA.
+
+ Dados fornecidos pela Leetify (Data Provided by Leetify)
+ métricas calculadas pelo FragLens (docs/metrics.md)
+ perfil Steam de 14/09/2026, 16:06 (cache) · análise gerada em 14/09/2026, 16:06
 ```
+
+Sem cores, a forma recente aparece em letras: `V` vitória, `D` derrota, `E` empate.
 
 **Requisições:** o jogador é resolvido uma única vez; a Leetify é consultada 2 vezes (perfil e partidas) e a Steam só quando o perfil não está em cache.
 
@@ -284,25 +312,25 @@ Principais campos:
 
 ## `fraglens maps <jogador>`
 
-Desempenho por mapa com as partidas da Leetify: partidas, vitórias-derrotas-empates, win rate, K/D, ADR, HS% e médias de kills e mortes por partida.
+Desempenho por mapa com as partidas da Leetify: partidas, vitórias-derrotas-empates, win rate (com barra), K/D, ADR e HS%.
 
 | Opção         | Efeito                                                        |
 | ------------- | ------------------------------------------------------------- |
 | `--limit <n>` | Partidas mais recentes consideradas, de 1 a 100 (padrão: 100) |
 
 ```text
-MAPAS
+── MAPAS · 100 partidas · 15/05/2026 a 13/09/2026 ──────────────────────────────
+  Mapa     Jogos    V-D-E  Vitórias            K/D   ADR    HS%
+  Dust2       47  23-18-6  █████░░░░░  48,9%  0,76  65,9  37,9%
+  Mirage      24  12-12-0  █████░░░░░  50,0%  0,75  61,3  36,9%
+  Cache*       4    2-2-0  █████░░░░░  50,0%  1,26  77,1  44,1%
 
-Mapa     Partidas    V-D-E  Vitórias   K/D   ADR    HS%  Kills méd.  Mortes méd.
-Dust2          47  23-18-6     48,9%  0,76  65,9  37,9%        11,9         15,6
-Mirage         24  12-12-0     50,0%  0,75  61,3  36,9%        11,0         14,5
-Cache*          4    2-2-0     50,0%  1,26  77,1  44,1%        17,0         13,5
-
-* Menos de 5 partidas no mapa: amostra pequena, interprete com cuidado.
+  * menos de 5 partidas no mapa: amostra pequena
 ```
 
 - Ordenação: do mapa mais jogado para o menos jogado.
 - `*` marca mapas com menos de 5 partidas (`lowSample: true` no JSON).
+- As médias de kills e mortes por partida não aparecem na tabela, mas estão no JSON (`averageKills`, `averageDeaths`).
 - Com `--json`: `{ steamId64, playerName, ranks, sampleSize, period: {from, to}, minMapSample, maps: [...], attribution, fetchedAt }`.
 
 Fórmulas: [metrics.md](metrics.md#por-mapa-fraglens-maps).
@@ -317,21 +345,20 @@ Resumo do período e tendências, com as partidas da Leetify.
 
 Seções:
 
-| Seção              | Conteúdo                                                                                                                                                                    |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Resumo             | Vitórias/derrotas/empates, win rate, K/D, KDA, ADR, HS%, kills/mortes/assistências por round, rounds vencidos e sobrevividos, multi-kills, trades e utilitários             |
-| Recente × anterior | Win rate, K/D, ADR e HS% das **10 partidas mais recentes** contra as **20 anteriores**, com variação: ▲ subiu, ▼ caiu, → estável. Exige ao menos 5 partidas em cada período |
-| Sequências         | Sequência atual e maiores sequências de vitórias e de derrotas (empates interrompem)                                                                                        |
-| Evolução           | Blocos de 10 partidas consecutivas, do mais antigo ao mais recente, com barra de win rate, K/D, ADR e HS%                                                                   |
+| Seção      | Conteúdo                                                                                                                                                                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desempenho | Cartões com vitórias, K/D, ADR, HS% e KDA; depois resultado, kills/mortes/assistências por round, rounds vencidos e sobrevividos, multi-kills, trades e utilitários                                                                          |
+| Tendência  | Win rate, K/D, ADR e HS% das **20 partidas anteriores** → **10 mais recentes**, com variação: ▲ subiu, ▼ caiu, = estável. Exige ao menos 5 partidas em cada período. Abaixo, a sequência atual e as maiores sequências (empates interrompem) |
+| Evolução   | Blocos de 10 partidas consecutivas, do mais antigo ao mais recente, com barra de win rate, K/D, ADR e HS%                                                                                                                                    |
 
 ```text
-RECENTE × ANTERIOR
+── TENDÊNCIA · últimas 10 × 20 anteriores ──────────────────────────────────────
+  Vitórias  30,0%  →  70,0%  ▲ +40,0 p.p.
+  K/D        0,78  →   0,88  ▲ +0,10
+  ADR        67,7  →   66,6  = estável (-1,1)
+  HS%       39,3%  →  35,3%  ▼ -4,0 p.p.
 
-Métrica   Últimas 10  20 anteriores  Variação
-Vitórias       70,0%          30,0%  ▲ +40,0 p.p.
-K/D             0,88           0,78  ▲ +0,10
-ADR             66,6           67,7  → -1,1
-HS%            35,3%          39,3%  ▼ -4,0 p.p.
+  Sequência atual: 1 derrota · maiores sequências: 4V / 4D
 ```
 
 Com `--json`:
@@ -407,19 +434,21 @@ Dados da Leetify não são guardados: são buscados a cada consulta.
 Mostra o que está guardado no banco para o jogador. **Requer `DATABASE_URL`.** Não consulta a Steam (exceto para resolver nome de usuário).
 
 ```text
-FRAGLENS · CACHE
+ FRAGLENS  cache do perfil · 76561198012345678
 
-SteamID64            76561198012345678
-Situação             ✓ Atualizado
-Última atualização   14/09/2026, 15:29 (há 21 min)
-Validade do cache    24 h
-Expira em            15/09/2026, 15:29
-Snapshots guardados  3
-Última análise       14/09/2026, 15:31
-Primeira consulta    14/09/2026, 15:02
+── PERFIL STEAM ────────────────────────────────────────────────────────────────
+  Situação             ✓ Atualizado
+  Última atualização   14/09/2026, 15:29 (há 21 min)
+  Validade do cache    24 h
+  Expira em            15/09/2026, 15:29
+  Snapshots guardados  3
+  Última análise       14/09/2026, 15:31
+  Primeira consulta    14/09/2026, 15:02
 
-Última sincronização
-✓ Perfil Steam: concluída em 14/09/2026, 15:29
+── ÚLTIMA SINCRONIZAÇÃO ────────────────────────────────────────────────────────
+  ✓ Perfil Steam: concluída em 14/09/2026, 15:29
+
+ Dados da Leetify não são guardados: são buscados a cada consulta.
 ```
 
 Situações possíveis: **Atualizado**, **Expirado** (será buscado de novo na próxima consulta) ou **Formato antigo** (guardado em versão anterior do formato).
@@ -485,8 +514,16 @@ Erros são exibidos em português, com possíveis causas:
 | `TIMEOUT` / `UPSTREAM_UNAVAILABLE`  | Steam ou Leetify lenta, fora do ar ou sem conexão                                           |
 | `UPSTREAM_ERROR`                    | Resposta inesperada da Steam ou da Leetify                                                  |
 
+## Aparência no terminal
+
+Decisão registrada no [ADR 0011](decisions/0011-visual-compacto-do-terminal.md).
+
+- **Carregamento:** enquanto consulta a Steam, a Leetify ou o banco, a CLI mostra um indicador animado no **stderr** (ex.: `⠋ Buscando partidas na Leetify…`), apagado ao terminar. Ele só aparece em terminal interativo e nunca com `--json` ou `--verbose`.
+- **Largura:** as linhas divisórias e o rodapé acompanham a largura do terminal, entre 60 e 100 colunas. Com a saída redirecionada para arquivo, usam 80.
+
 ## Terminais sem suporte a cores ou unicode
 
 - Cores são desativadas automaticamente fora de um terminal interativo e respeitam `NO_COLOR` / `FORCE_COLOR`.
-- No console legado do Windows (cmd/conhost), os símbolos `✓ ⚠ ✗` são trocados por `[ok] [!] [x]`.
+- No console legado do Windows (cmd/conhost), os símbolos `✓ ⚠ ✗ ▲ ▼ → █ ─` são trocados por `[ok] [!] [x] + - -> # -`.
+- Sem cores, a forma recente usa letras (`V D E`) em vez de quadrados coloridos.
 - Textos vindos da Steam (como o nome do perfil) têm caracteres de controle removidos antes de serem exibidos.

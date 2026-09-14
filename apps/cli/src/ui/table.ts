@@ -18,6 +18,7 @@ export function renderTable(
   columns: readonly Column[],
   rows: readonly (readonly Cell[])[],
   { colors }: Theme,
+  options: { header?: boolean } = {},
 ): string[] {
   const widths = columns.map((column, index) =>
     Math.max(column.header.length, ...rows.map((row) => cellText(row[index]).length)),
@@ -25,7 +26,9 @@ export function renderTable(
 
   const pad = (text: string, index: number) => {
     const width = widths[index] ?? 0;
-    return columns[index]?.align === 'right' ? text.padStart(width) : text.padEnd(width);
+    if (columns[index]?.align === 'right') return text.padStart(width);
+    // A última coluna não precisa de espaços à direita (que ficariam coloridos no fim da linha).
+    return index === columns.length - 1 ? text : text.padEnd(width);
   };
 
   const header = columns.map((column, index) => colors.dim(pad(column.header, index)));
@@ -37,7 +40,8 @@ export function renderTable(
     }),
   );
 
-  return [header, ...lines].map((cells) => cells.join(COLUMN_GAP).trimEnd());
+  const all = options.header === false ? lines : [header, ...lines];
+  return all.map((cells) => cells.join(COLUMN_GAP).trimEnd());
 }
 
 function cellText(cell: Cell | undefined): string {

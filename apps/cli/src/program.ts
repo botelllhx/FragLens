@@ -13,7 +13,7 @@ import { registerRefreshCommand } from './commands/refresh.js';
 import { translateCommanderMessage, translateHelp } from './i18n.js';
 import type { CliIo } from './io.js';
 import { errorToJson, renderError } from './ui/errors.js';
-import { createTheme, type Theme } from './ui/theme.js';
+import { createTheme, terminalWidth, type Theme } from './ui/theme.js';
 
 export type SteamGatewayFactory = (apiKey: string, logger: Logger) => SteamGateway;
 export type PerformanceSourceFactory = (
@@ -34,6 +34,10 @@ export interface CliDeps {
   connectDatabase: DatabaseFactory;
   /** Fuso horário para exibir datas; padrão: o do sistema. */
   timeZone?: string;
+  /** Colunas do terminal; ausente quando a saída é redirecionada. */
+  columns?: number | undefined;
+  /** Se o stderr é um terminal interativo (habilita o indicador de carregamento). */
+  interactive?: boolean;
 }
 
 export interface GlobalOptions {
@@ -86,7 +90,11 @@ export async function run(argv: readonly string[], deps: CliDeps): Promise<numbe
   let exitCode = 0;
   const ctx: CommandContext = {
     ...deps,
-    theme: createTheme(deps),
+    theme: createTheme({
+      colorsEnabled: deps.colorsEnabled,
+      unicode: deps.unicode,
+      width: terminalWidth(deps.columns),
+    }),
     reportExitCode: (code) => {
       exitCode = Math.max(exitCode, code);
     },

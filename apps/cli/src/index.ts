@@ -21,6 +21,8 @@ process.exitCode = await run(process.argv, {
   nodeVersion: process.versions.node,
   colorsEnabled: pc.isColorSupported,
   unicode: supportsUnicode(),
+  columns: process.stdout.isTTY ? process.stdout.columns : undefined,
+  interactive: process.stderr.isTTY,
   createSteamGateway: (apiKey, logger) => new SteamWebApiClient({ apiKey, logger }),
   createPerformanceSource: (apiKey, logger) => new LeetifyClient({ apiKey, logger }),
   connectDatabase,

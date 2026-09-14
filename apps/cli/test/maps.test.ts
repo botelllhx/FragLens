@@ -26,12 +26,13 @@ describe('fraglens maps', () => {
 
     expect(exitCode).toBe(0);
     expect(stderr).toBe('');
-    expect(stdout).toMatch(/Base\s+9 partidas · de 22\/09\/2026 a 30\/09\/2026/);
-    expect(stdout).toMatch(/Mirage\s+6\s+4-2-0\s+66,7%\s+1,23\s+72,7\s+81,3%\s+16,0\s+13,0/);
-    expect(stdout).toMatch(/Inferno\*\s+2\s+1-0-1\s+50,0%/);
-    expect(stdout).toMatch(/Ancient\*\s+1\s+0-1-0\s+0,0%/);
+    expect(stdout).toContain('── MAPAS · 9 partidas · 22/09/2026 a 30/09/2026 ──');
+    expect(stdout).toMatch(/Mapa\s+Jogos\s+V-D-E\s+Vitórias\s+K\/D\s+ADR\s+HS%/);
+    expect(stdout).toMatch(/Mirage\s+6\s+4-2-0\s+█{7}░{3}\s+66,7%\s+1,23\s+72,7\s+81,3%/);
+    expect(stdout).toMatch(/Inferno\*\s+2\s+1-0-1\s+█{5}░{5}\s+50,0%/);
+    expect(stdout).toMatch(/Ancient\*\s+1\s+0-1-0\s+░{10}\s+0,0%/);
     expect(stdout.indexOf('Mirage')).toBeLessThan(stdout.indexOf('Inferno'));
-    expect(stdout).toContain('* Menos de 5 partidas no mapa: amostra pequena');
+    expect(stdout).toContain('* menos de 5 partidas no mapa: amostra pequena');
     expect(stdout).toContain('Dados fornecidos pela Leetify');
   });
 

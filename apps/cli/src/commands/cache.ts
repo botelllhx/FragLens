@@ -11,7 +11,12 @@ export function registerCacheCommand(program: Command, ctx: CommandContext): voi
     .action(async (player: string, _options: unknown, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
 
-      const status = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Consultando o banco de dados',
+      };
+      const status = await withLocalServices(ctx, loading, (services) =>
         services.profile.getCacheStatus(player),
       );
 

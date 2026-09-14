@@ -22,7 +22,12 @@ export function registerProfileCommand(program: Command, ctx: CommandContext): v
     .action(async (player: string, options: { refresh?: boolean }, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
 
-      const profile = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Consultando perfil na Steam',
+      };
+      const profile = await withLocalServices(ctx, loading, (services) =>
         services.profile.getProfile(player, { refresh: options.refresh === true }),
       );
 

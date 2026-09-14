@@ -31,7 +31,12 @@ export function registerAnalyzeCommand(program: Command, ctx: CommandContext): v
     .action(async (player: string, options: AnalyzeOptions, command: Command) => {
       const { json, verbose } = command.optsWithGlobals<GlobalOptions>();
 
-      const analysis = await withLocalServices(ctx, { verbose: verbose === true }, (services) =>
+      const loading = {
+        verbose: verbose === true,
+        json: json === true,
+        loading: 'Analisando jogador na Steam e na Leetify',
+      };
+      const analysis = await withLocalServices(ctx, loading, (services) =>
         services.analysis.analyze(player, {
           refresh: options.refresh === true,
           limit: options.limit,

@@ -7,6 +7,7 @@ import {
 } from '@fraglens/core';
 import { AppError, createLogger, loadConfig } from '@fraglens/shared';
 import type { CommandContext } from './program.js';
+import { spinnerEnabled, withSpinner } from './ui/spinner.js';
 
 export interface LocalServices {
   profile: ProfileService;
@@ -14,6 +15,13 @@ export interface LocalServices {
   analysis: AnalysisService;
   /** Fecha as conexões abertas; sem isso o processo não termina. */
   close(): Promise<void>;
+}
+
+export interface LocalServicesOptions {
+  verbose: boolean;
+  json?: boolean;
+  /** Texto do indicador de carregamento exibido enquanto os serviços trabalham. */
+  loading?: string;
 }
 
 /**
@@ -65,16 +73,28 @@ export function createLocalServices(
   };
 }
 
-/** Executa `fn` com os serviços locais e sempre fecha as conexões ao final. */
+/**
+ * Executa `fn` com os serviços locais e sempre fecha as conexões ao final.
+ * Com `loading`, exibe o indicador de carregamento quando o terminal permite.
+ */
 export async function withLocalServices<T>(
   ctx: CommandContext,
-  options: { verbose: boolean },
+  options: LocalServicesOptions,
   fn: (services: LocalServices) => Promise<T>,
 ): Promise<T> {
-  const services = createLocalServices(ctx, options);
-  try {
-    return await fn(services);
-  } finally {
-    await services.close();
-  }
+  const task = async () => {
+    const services = createLocalServices(ctx, options);
+    try {
+      return await fn(services);
+    } finally {
+      await services.close();
+    }
+  };
+
+  if (options.loading === undefined) return task();
+  return withSpinner(
+    options.loading,
+    { io: ctx.io, theme: ctx.theme, enabled: spinnerEnabled(ctx.interactive, options) },
+    task,
+  );
 }

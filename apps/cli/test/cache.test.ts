@@ -44,7 +44,7 @@ describe('cache do perfil na CLI', () => {
 
     expect(first.stdout).not.toContain('(cache)');
     expect(second.stdout).toContain('(cache)');
-    expect(second.stdout).toContain('Use --refresh para buscar novamente.');
+    expect(second.stdout).toContain('use --refresh para buscar novamente');
     expect((JSON.parse(third.stdout) as PlayerProfile).cached).toBe(false);
     expect(steam.summaryCalls()).toBe(2);
     expect(memory.profiles).toHaveLength(2);

@@ -13,8 +13,9 @@ describe('fraglens profile', () => {
 
     expect(exitCode).toBe(0);
     expect(stderr).toBe('');
-    expect(stdout).toContain('Jogador Teste');
-    expect(stdout).toMatch(/SteamID64\s+76561198034202275/);
+    expect(stdout).toContain('FRAGLENS  Jogador Teste · 76561198034202275');
+    expect(stdout).toContain('https://steamcommunity.com/id/jogador');
+    expect(stdout).toContain('── CONTA ──');
     expect(stdout).toMatch(/Visibilidade\s+Público/);
     expect(stdout).toMatch(/País\s+Brasil/);
     expect(stdout).toMatch(/Conta criada\s+27\/11\/2010/);
