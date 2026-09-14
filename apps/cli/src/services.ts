@@ -1,9 +1,10 @@
-import { ProfileService, SteamIdentifierResolver } from '@fraglens/core';
+import { MatchService, ProfileService, SteamIdentifierResolver } from '@fraglens/core';
 import { AppError, createLogger, loadConfig } from '@fraglens/shared';
 import type { CommandContext } from './program.js';
 
 export interface LocalServices {
   profile: ProfileService;
+  matches: MatchService;
 }
 
 /**
@@ -27,8 +28,13 @@ export function createLocalServices(
   // Com --verbose, os logs de processamento vão para o stderr.
   const logger = createLogger({ level: options.verbose ? 'debug' : 'silent' });
   const steam = ctx.createSteamGateway(config.steam.apiKey, logger);
+  const resolver = new SteamIdentifierResolver(steam);
 
   return {
-    profile: new ProfileService({ steam, resolver: new SteamIdentifierResolver(steam) }),
+    profile: new ProfileService({ steam, resolver }),
+    matches: new MatchService({
+      resolver,
+      performance: ctx.createPerformanceSource(config.leetify.apiKey, logger),
+    }),
   };
 }

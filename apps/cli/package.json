@@ -19,6 +19,7 @@
   "dependencies": {
     "@fraglens/core": "workspace:*",
     "@fraglens/shared": "workspace:*",
+    "@fraglens/sources": "workspace:*",
     "@fraglens/steam": "workspace:*",
     "commander": "^15.0.0",
     "picocolors": "^1.1.1"

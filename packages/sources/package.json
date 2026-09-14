@@ -1,8 +1,8 @@
 {
-  "name": "@fraglens/core",
+  "name": "@fraglens/sources",
   "version": "0.1.0",
   "private": true,
-  "description": "Tipos de domínio, portas e serviços de aplicação do FragLens.",
+  "description": "Adaptadores de fontes de dados de desempenho no CS2 (Leetify).",
   "type": "module",
   "exports": {
     ".": {
@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@fraglens/analysis": "workspace:*",
-    "@fraglens/shared": "workspace:*"
+    "@fraglens/core": "workspace:*",
+    "@fraglens/shared": "workspace:*",
+    "zod": "^4.6.5"
   }
 }

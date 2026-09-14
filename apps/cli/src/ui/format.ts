@@ -23,6 +23,34 @@ export function formatHours(hours: number): string {
   return `${hoursFormat.format(hours)} h`;
 }
 
+export function formatInteger(value: number): string {
+  return new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 }).format(value);
+}
+
+/** Número com quantidade fixa de casas decimais, ex.: 1,20. */
+export function formatDecimal(value: number, digits: number): string {
+  return new Intl.NumberFormat(LOCALE, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value);
+}
+
+/** Recebe o valor já em porcentagem (81.3 → "81,3%"). */
+export function formatPercent(value: number): string {
+  return `${formatDecimal(value, 1)}%`;
+}
+
+/** "de_mirage" → "Mirage", "cs_office" → "Office". Nomes fora do padrão são exibidos como vieram. */
+export function formatMapName(map: string): string {
+  const clean = safeText(map);
+  const match = /^(?:de|cs|ar|dz|gd)_(.+)$/.exec(clean);
+  if (!match?.[1]) return clean;
+  return match[1]
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 const regionNames = new Intl.DisplayNames([LOCALE], { type: 'region' });
 
 export function countryName(code: string): string {

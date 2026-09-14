@@ -2,6 +2,7 @@
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 import { loadEnvFile } from '@fraglens/shared';
+import { LeetifyClient } from '@fraglens/sources';
 import { SteamWebApiClient } from '@fraglens/steam';
 import { processIo } from './io.js';
 import { run } from './program.js';
@@ -20,4 +21,5 @@ process.exitCode = await run(process.argv, {
   colorsEnabled: pc.isColorSupported,
   unicode: supportsUnicode(),
   createSteamGateway: (apiKey, logger) => new SteamWebApiClient({ apiKey, logger }),
+  createPerformanceSource: (apiKey, logger) => new LeetifyClient({ apiKey, logger }),
 });

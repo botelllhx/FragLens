@@ -119,6 +119,21 @@ Valores de `data_source` observados: `faceit`, `hltv`, `matchmaking`, `matchmaki
 
 Conferência com dados reais: `rounds_won=13 / rounds_lost=7` bateu com `team_scores` para `initial_team_number=2` **[verificado]** → vitória/derrota pode ser derivada de `rounds_won` vs `rounds_lost` (empates são possíveis em alguns modos).
 
+#### Comportamentos confirmados na Fase 3 **[verificado em 14/09/2026]**
+
+| Situação                                    | Resultado                                                                                                                                                                   |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v3/profile/matches`                       | 100 partidas, ordenadas da mais recente para a mais antiga                                                                                                                  |
+| `rounds_won`/`rounds_lost` vs `team_scores` | Iguais em 100 de 100 partidas; 3 empates                                                                                                                                    |
+| `dpr` vs `total_damage / rounds_count`      | Diferença máxima de 0,005 → ADR pode ser calculado pelo FragLens                                                                                                            |
+| `kd_ratio` vs `total_kills / total_deaths`  | Diferença máxima de 0,005                                                                                                                                                   |
+| Campos nulos                                | Apenas `data_source_match_id` (1 de 100); nenhum contador nulo                                                                                                              |
+| `recent_matches[].outcome`                  | `win`, `loss`, `tie`                                                                                                                                                        |
+| `recent_matches[].rank_type`                | `11`, `12` ou `null`. Significado não documentado → **não interpretado** pelo FragLens                                                                                      |
+| Partidas curtas                             | Existem placares como `7-2` e `0-4` (provável rendição/abandono); exibidos como vieram                                                                                      |
+| Jogador não acompanhado                     | 404 em `/v3/profile` e `/v3/profile/matches`. Uma conta que retornou 404 passou a ter dados horas depois, o que indica processamento assíncrono na Leetify **[verificado]** |
+| Headers de rate limit                       | Nenhum                                                                                                                                                                      |
+
 #### Diretrizes para desenvolvedores da Leetify **[docs]**
 
 - **Atribuição obrigatória**: "Data Provided by Leetify" / links "View on Leetify".

@@ -8,7 +8,7 @@ O FragLens analisa jogadores de CS2 a partir de uma Steam ID ou URL de perfil: b
 fraglens analyze https://steamcommunity.com/id/usuario
 ```
 
-> **Status:** em desenvolvimento — **Fase 2 concluída** (`fraglens profile`). Os comandos de análise ainda não existem; veja o [roadmap](#15-roadmap).
+> **Status:** em desenvolvimento — **Fase 3 concluída** (`fraglens profile` e `fraglens matches`). A análise completa ainda não existe; veja o [roadmap](#15-roadmap).
 
 ---
 
@@ -52,19 +52,19 @@ CLI ───────┐
 API ───────┘
 ```
 
-| Pacote               | Responsabilidade                                   | Status                  |
-| -------------------- | -------------------------------------------------- | ----------------------- |
-| `apps/cli`           | Comando `fraglens` (Commander)                     | `profile`, `doctor`     |
-| `apps/api`           | API HTTP (Fastify)                                 | Esqueleto + `/health`   |
-| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente | ✅                      |
-| `packages/contracts` | Schemas compartilhados CLI/API                     | Fase 9                  |
-| `packages/core`      | Domínio: resolver de Steam ID, serviço de perfil   | ✅ (cresce a cada fase) |
-| `packages/steam`     | Cliente da Steam Web API                           | ✅                      |
-| `packages/sources`   | Adaptador Leetify                                  | Fase 3                  |
-| `packages/db`        | Prisma 7 + PostgreSQL                              | Fase 4                  |
-| `packages/analysis`  | Motor de métricas                                  | Fase 5                  |
-| `packages/demos`     | Parser de demos                                    | Fase 6                  |
-| `packages/ai`        | Provedores de IA                                   | Fase 8                  |
+| Pacote               | Responsabilidade                                             | Status                                           |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| `apps/cli`           | Comando `fraglens` (Commander)                               | `profile`, `matches`, `doctor`                   |
+| `apps/api`           | API HTTP (Fastify)                                           | Esqueleto + `/health`                            |
+| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente           | ✅                                               |
+| `packages/contracts` | Schemas compartilhados CLI/API                               | Fase 9                                           |
+| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas | ✅ (cresce a cada fase)                          |
+| `packages/steam`     | Cliente da Steam Web API                                     | ✅                                               |
+| `packages/sources`   | Cliente da Leetify Public API                                | ✅                                               |
+| `packages/db`        | Prisma 7 + PostgreSQL                                        | Fase 4                                           |
+| `packages/analysis`  | Motor de métricas (funções puras)                            | K/D, ADR, HS%, forma recente; completo na Fase 5 |
+| `packages/demos`     | Parser de demos                                              | Fase 6                                           |
+| `packages/ai`        | Provedores de IA                                             | Fase 8                                           |
 
 Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md) e [docs/decisions/](docs/decisions/).
 
@@ -131,6 +131,8 @@ Disponível hoje (a partir do código-fonte, use `pnpm dev:cli` no lugar de `fra
 fraglens profile 76561198012345678                        # por SteamID64
 fraglens profile https://steamcommunity.com/id/usuario    # por URL
 fraglens profile usuario --json                           # por nome, em JSON
+fraglens matches usuario                                  # últimas 20 partidas (Leetify)
+fraglens matches usuario --limit 50 --json                # até 100 partidas, em JSON
 fraglens doctor                                           # diagnóstico do ambiente
 fraglens --help                                           # ajuda
 ```
@@ -170,6 +172,28 @@ BANIMENTOS
 Dados da Steam obtidos em 14/09/2026, 14:37
 ```
 
+Exemplo de `fraglens matches` (trecho):
+
+```text
+FORMA RECENTE
+
+V V D V E D V V V D
+
+Últimas 10: 6 V · 3 D · 1 E
+
+────────────────────────────────────────────────
+
+PARTIDAS (20 de 100)
+
+Data        Mapa     Origem       Placar  Res.    K-D-A   K/D   ADR    HS%
+13/09/2026  Mirage   Matchmaking   13-11  V     21-15-4  1,40  88,2  47,6%
+12/09/2026  Inferno  Competitivo    9-13  D     14-18-3  0,78  64,5  35,7%
+
+────────────────────────────────────────────────
+Dados fornecidos pela Leetify (Data Provided by Leetify)
+K-D-A, ADR e HS% calculados pelo FragLens a partir dos dados de cada partida.
+```
+
 Formatos de jogador aceitos: SteamID64, `STEAM_0:X:Y`, `[U:1:Z]`, URL `/profiles/`, URL `/id/` e o nome da URL personalizada. URLs de outros sites são recusadas.
 
 Opções globais:
@@ -183,7 +207,7 @@ Códigos de saída: `0` sucesso · `1` falha · `2` uso incorreto.
 
 Referência completa: [docs/cli.md](docs/cli.md).
 
-Comandos planejados: `analyze`, `matches`, `maps`, `progress`, `compare`, `refresh`, `cache`, `config` — ver [roadmap](#15-roadmap).
+Comandos planejados: `analyze`, `maps`, `progress`, `compare`, `refresh`, `cache`, `config` — ver [roadmap](#15-roadmap).
 
 ## 8. Executando a API
 
@@ -239,7 +263,9 @@ Atenção: no plano gratuito do Render a API "dorme" após 15 minutos sem uso e 
 ## 12. Limitações conhecidas
 
 - A Steam **não fornece** histórico de partidas, estatísticas por partida nem Premier rating.
-- Dados de desempenho dependem da **Leetify**: jogadores que ela não acompanha ficam sem estatísticas.
+- Dados de desempenho dependem da **Leetify**: jogadores que ela não acompanha ficam sem estatísticas. Para ter seus dados, entre em [leetify.com](https://leetify.com) com a Steam e informe o código de autenticação de partidas.
+- Notas próprias da Leetify (Leetify Rating, aim, utility…) aparecem apenas no `--json`, sem alteração, até confirmarmos como a Leetify as exibe.
+- A origem "Matchmaking" informada pela Leetify não é identificada oficialmente como Premier; o FragLens não faz essa suposição.
 - A Leetify pede para **não armazenar** seus dados: o FragLens não guarda nenhum dado da Leetify (nem em cache) e não tem histórico além das últimas 100 partidas.
 - **Premier rating** pode estar indisponível (campo nulo na Leetify).
 - **K/D por lado (T/CT) e clutches** só serão possíveis com demos (Fase 6).
@@ -279,7 +305,7 @@ Ferramentas de desenvolvimento (TypeScript: Apache-2.0; ESLint, Prettier, Vitest
 | 0    | Pesquisa técnica                                              | ✅     |
 | 1    | Bootstrap: monorepo, TypeScript, lint, testes, Docker, README | ✅     |
 | 2    | Resolver de Steam ID + `fraglens profile`                     | ✅     |
-| 3    | Integração Leetify + `fraglens matches`                       | ⏳     |
+| 3    | Integração Leetify + `fraglens matches`                       | ✅     |
 | 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ⏳     |
 | 5    | Motor de métricas determinísticas                             | ⏳     |
 | 6    | Processamento de demos enviadas pelo usuário                  | ⏳     |

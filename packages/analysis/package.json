@@ -1,8 +1,8 @@
 {
-  "name": "@fraglens/core",
+  "name": "@fraglens/analysis",
   "version": "0.1.0",
   "private": true,
-  "description": "Tipos de domínio, portas e serviços de aplicação do FragLens.",
+  "description": "Cálculo determinístico de métricas do FragLens (funções puras, sem I/O).",
   "type": "module",
   "exports": {
     ".": {
@@ -16,9 +16,5 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
-  },
-  "dependencies": {
-    "@fraglens/analysis": "workspace:*",
-    "@fraglens/shared": "workspace:*"
   }
 }

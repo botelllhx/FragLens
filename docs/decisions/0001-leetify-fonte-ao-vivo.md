@@ -15,7 +15,7 @@ O requisito original do projeto previa persistir partidas no banco para históri
 - **Nenhum dado da Leetify é guardado** — nem em cache, nem no banco. O responsável pelo produto optou por não solicitar permissão de cache à Leetify.
 - Análises derivadas desses dados também não são persistidas.
 - O banco persiste apenas dados próprios: identidade e perfil Steam, jobs de sincronização e estatísticas extraídas de demos processadas pelo FragLens.
-- Métricas da Leetify (Leetify Rating, aim, utility etc.) são exibidas **sem alteração** e identificadas como "Leetify".
+- Métricas da Leetify (Leetify Rating, aim, utility etc.) são repassadas **sem alteração** e identificadas como "Leetify". Enquanto não for confirmado como a própria Leetify exibe esses números (escala e formato), eles aparecem **apenas na saída `--json`**, nunca reformatados no terminal.
 - Métricas calculadas pelo FragLens a partir de contadores brutos (K/D, ADR, HS%...) são identificadas como "FragLens".
 - Toda saída que usar dados da Leetify exibe "Dados fornecidos pela Leetify" (Data Provided by Leetify).
 

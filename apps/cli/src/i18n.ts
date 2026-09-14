@@ -21,6 +21,10 @@ const ERROR_REPLACEMENTS: readonly Replacement[] = [
   [/^error: missing required argument '(.+?)'/m, "erro: argumento obrigatório ausente '$1'"],
   [/^error: option '(.+?)' argument missing/m, "erro: a opção '$1' precisa de um valor"],
   [
+    /^error: option '(.+?)' argument '(.*?)' is invalid\./m,
+    "erro: valor inválido '$2' para a opção '$1'.",
+  ],
+  [
     /^error: too many arguments(?: for '.+?')?\. Expected (\d+) arguments? but got (\d+)\./m,
     'erro: argumentos demais. Esperado: $1, recebido: $2.',
   ],
