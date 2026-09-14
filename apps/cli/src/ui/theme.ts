@@ -9,6 +9,11 @@ export interface Symbols {
   bullet: string;
   dash: string;
   rule: string;
+  up: string;
+  down: string;
+  stable: string;
+  bar: string;
+  barEmpty: string;
 }
 
 export interface Theme {
@@ -23,6 +28,11 @@ const UNICODE_SYMBOLS: Symbols = {
   bullet: '•',
   dash: '—',
   rule: '─',
+  up: '▲',
+  down: '▼',
+  stable: '→',
+  bar: '█',
+  barEmpty: '░',
 };
 const ASCII_SYMBOLS: Symbols = {
   ok: '[ok]',
@@ -31,6 +41,11 @@ const ASCII_SYMBOLS: Symbols = {
   bullet: '*',
   dash: '-',
   rule: '-',
+  up: '+',
+  down: '-',
+  stable: '=',
+  bar: '#',
+  barEmpty: '.',
 };
 
 export function createTheme(options: { colorsEnabled: boolean; unicode: boolean }): Theme {

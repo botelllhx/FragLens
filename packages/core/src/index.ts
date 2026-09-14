@@ -1,16 +1,30 @@
-export type { RecentForm } from '@fraglens/analysis';
+export type {
+  ComparedMetric,
+  MapPerformance,
+  MetricComparison,
+  PerformanceBlock,
+  PerformanceSummary,
+  PeriodComparison,
+  RecentForm,
+  Streak,
+  StreakSummary,
+  TrendDirection,
+} from '@fraglens/analysis';
 export { SteamIdentifierResolver } from './identifier-resolver.js';
 export type {
   AnalyzedMatch,
   LeetifyMatchRatings,
   LeetifyProfileRatings,
+  MapReport,
   MatchHistory,
   MatchMetrics,
   MatchOutcome,
   PerformanceData,
+  PerformanceReportBase,
   PlayerMatch,
   PlayerMatchStats,
   PlayerRanks,
+  ProgressReport,
 } from './match.js';
 export {
   LEETIFY_ATTRIBUTION,

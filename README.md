@@ -8,7 +8,7 @@ O FragLens analisa jogadores de CS2 a partir de uma Steam ID ou URL de perfil: b
 fraglens analyze https://steamcommunity.com/id/usuario
 ```
 
-> **Status:** em desenvolvimento — **Fase 4 concluída** (banco de dados, cache do perfil, `refresh` e `cache`). A análise completa ainda não existe; veja o [roadmap](#15-roadmap).
+> **Status:** em desenvolvimento — **Fase 5 concluída** (motor de métricas, `maps` e `progress`). O comando `analyze` ainda não existe; veja o [roadmap](#15-roadmap).
 
 ---
 
@@ -52,21 +52,21 @@ CLI ───────┐
 API ───────┘
 ```
 
-| Pacote               | Responsabilidade                                               | Status                                             |
-| -------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
-| `apps/cli`           | Comando `fraglens` (Commander)                                 | `profile`, `matches`, `refresh`, `cache`, `doctor` |
-| `apps/api`           | API HTTP (Fastify)                                             | Esqueleto + `/health`                              |
-| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente             | ✅                                                 |
-| `packages/contracts` | Schemas compartilhados CLI/API                                 | Fase 9                                             |
-| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas   | ✅ (cresce a cada fase)                            |
-| `packages/steam`     | Cliente da Steam Web API                                       | ✅                                                 |
-| `packages/sources`   | Cliente da Leetify Public API                                  | ✅                                                 |
-| `packages/db`        | Prisma 7 + PostgreSQL: cache e histórico do perfil Steam, jobs | ✅                                                 |
-| `packages/analysis`  | Motor de métricas (funções puras)                              | K/D, ADR, HS%, forma recente; completo na Fase 5   |
-| `packages/demos`     | Parser de demos                                                | Fase 6                                             |
-| `packages/ai`        | Provedores de IA                                               | Fase 8                                             |
+| Pacote               | Responsabilidade                                               | Status                                                                 |
+| -------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `apps/cli`           | Comando `fraglens` (Commander)                                 | `profile`, `matches`, `maps`, `progress`, `refresh`, `cache`, `doctor` |
+| `apps/api`           | API HTTP (Fastify)                                             | Esqueleto + `/health`                                                  |
+| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente             | ✅                                                                     |
+| `packages/contracts` | Schemas compartilhados CLI/API                                 | Fase 9                                                                 |
+| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas   | ✅ (cresce a cada fase)                                                |
+| `packages/steam`     | Cliente da Steam Web API                                       | ✅                                                                     |
+| `packages/sources`   | Cliente da Leetify Public API                                  | ✅                                                                     |
+| `packages/db`        | Prisma 7 + PostgreSQL: cache e histórico do perfil Steam, jobs | ✅                                                                     |
+| `packages/analysis`  | Motor de métricas (funções puras): resumo, mapas, tendências   | ✅                                                                     |
+| `packages/demos`     | Parser de demos                                                | Fase 6                                                                 |
+| `packages/ai`        | Provedores de IA                                               | Fase 8                                                                 |
 
-Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md), [docs/database.md](docs/database.md) e [docs/decisions/](docs/decisions/).
+Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md), [docs/metrics.md](docs/metrics.md), [docs/database.md](docs/database.md) e [docs/decisions/](docs/decisions/).
 
 ## 3. Instalação
 
@@ -138,6 +138,8 @@ fraglens matches usuario                                  # últimas 20 partidas
 fraglens matches usuario --limit 50 --json                # até 100 partidas, em JSON
 fraglens refresh usuario                                  # atualiza o perfil guardado no banco
 fraglens cache usuario                                    # mostra o que está guardado e se expirou
+fraglens maps usuario                                     # desempenho por mapa (até 100 partidas)
+fraglens progress usuario                                 # resumo, recente × anterior, sequências e evolução
 fraglens doctor                                           # diagnóstico do ambiente
 fraglens --help                                           # ajuda
 ```
@@ -210,9 +212,9 @@ Opções globais:
 
 Códigos de saída: `0` sucesso · `1` falha · `2` uso incorreto.
 
-Referência completa: [docs/cli.md](docs/cli.md).
+Referência completa: [docs/cli.md](docs/cli.md). Fórmulas de todas as métricas: [docs/metrics.md](docs/metrics.md).
 
-Comandos planejados: `analyze`, `maps`, `progress`, `compare`, `config` — ver [roadmap](#15-roadmap).
+Comandos planejados: `analyze`, `compare`, `config` — ver [roadmap](#15-roadmap).
 
 ## 8. Executando a API
 
@@ -315,7 +317,7 @@ Ferramentas de desenvolvimento (TypeScript e Prisma CLI: Apache-2.0; ESLint, Pre
 | 2    | Resolver de Steam ID + `fraglens profile`                     | ✅     |
 | 3    | Integração Leetify + `fraglens matches`                       | ✅     |
 | 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ✅     |
-| 5    | Motor de métricas determinísticas                             | ⏳     |
+| 5    | Motor de métricas determinísticas + `maps` e `progress`       | ✅     |
 | 6    | Processamento de demos enviadas pelo usuário                  | ⏳     |
 | 7    | `fraglens analyze --no-ai`                                    | ⏳     |
 | 8    | Análise com IA                                                | ⏳     |

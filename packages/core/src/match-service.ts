@@ -1,12 +1,26 @@
 import {
   averageDamagePerRound,
+  compareRecentToPrevious,
   headshotPercentage,
   killDeathRatio,
+  MIN_MAP_SAMPLE,
+  performanceBlocks,
+  performanceByMap,
   recentForm,
+  streaks,
+  summarize,
 } from '@fraglens/analysis';
 import { AppError } from '@fraglens/shared';
 import type { SteamIdentifierResolver } from './identifier-resolver.js';
-import type { AnalyzedMatch, MatchHistory, PlayerMatch } from './match.js';
+import type {
+  AnalyzedMatch,
+  MapReport,
+  MatchHistory,
+  PerformanceData,
+  PerformanceReportBase,
+  PlayerMatch,
+  ProgressReport,
+} from './match.js';
 import type { PerformanceSource } from './ports.js';
 
 export const MAX_MATCHES = 100;
@@ -20,10 +34,20 @@ export interface MatchServiceDeps {
 }
 
 export interface MatchQuery {
-  /** Quantidade de partidas retornadas (1 a 100). Padrão: todas as disponíveis. */
+  /** Quantidade de partidas mais recentes consideradas (1 a 100). Padrão: todas as disponíveis. */
   limit?: number;
 }
 
+interface LoadedMatches {
+  steamId64: string;
+  data: PerformanceData;
+  /** Todas as partidas disponíveis, da mais recente para a mais antiga. */
+  newestFirst: PlayerMatch[];
+  /** As partidas dentro do limite. */
+  selected: PlayerMatch[];
+}
+
+/** Partidas e relatórios calculados a partir delas. Os dados vêm ao vivo da fonte (Leetify). */
 export class MatchService {
   private readonly resolver: SteamIdentifierResolver;
   private readonly performance: PerformanceSource;
@@ -36,6 +60,50 @@ export class MatchService {
   }
 
   async getMatchHistory(input: string, query: MatchQuery = {}): Promise<MatchHistory> {
+    const { steamId64, data, newestFirst, selected } = await this.load(input, query);
+
+    return {
+      steamId64,
+      playerName: data.playerName,
+      ranks: data.ranks,
+      leetify: {
+        privacyMode: data.privacyMode,
+        totalMatches: data.totalMatches,
+        ratings: data.ratings,
+      },
+      availableMatches: newestFirst.length,
+      matches: selected.map(analyzeMatch),
+      recentForm: recentForm(
+        newestFirst.map((match) => match.outcome),
+        RECENT_FORM_SIZE,
+      ),
+      attribution: LEETIFY_ATTRIBUTION,
+      fetchedAt: this.now().toISOString(),
+    };
+  }
+
+  async getMapReport(input: string, query: MatchQuery = {}): Promise<MapReport> {
+    const loaded = await this.load(input, query);
+    return {
+      ...this.reportBase(loaded),
+      minMapSample: MIN_MAP_SAMPLE,
+      maps: performanceByMap(loaded.selected),
+    };
+  }
+
+  async getProgressReport(input: string, query: MatchQuery = {}): Promise<ProgressReport> {
+    const loaded = await this.load(input, query);
+    const { selected } = loaded;
+    return {
+      ...this.reportBase(loaded),
+      summary: summarize(selected),
+      comparison: compareRecentToPrevious(selected),
+      streaks: streaks(selected.map((match) => match.outcome)),
+      blocks: performanceBlocks(selected),
+    };
+  }
+
+  private async load(input: string, query: MatchQuery): Promise<LoadedMatches> {
     const limit = validateLimit(query.limit);
     const steamId64 = await this.resolver.resolve(input);
 
@@ -51,22 +119,18 @@ export class MatchService {
     }
 
     const newestFirst = [...data.matches].sort(byNewestFirst);
+    return { steamId64, data, newestFirst, selected: newestFirst.slice(0, limit) };
+  }
 
+  private reportBase({ steamId64, data, selected }: LoadedMatches): PerformanceReportBase {
+    const newest = selected[0];
+    const oldest = selected.at(-1);
     return {
       steamId64,
       playerName: data.playerName,
       ranks: data.ranks,
-      leetify: {
-        privacyMode: data.privacyMode,
-        totalMatches: data.totalMatches,
-        ratings: data.ratings,
-      },
-      availableMatches: newestFirst.length,
-      matches: newestFirst.slice(0, limit).map(analyzeMatch),
-      recentForm: recentForm(
-        newestFirst.map((match) => match.outcome),
-        RECENT_FORM_SIZE,
-      ),
+      sampleSize: selected.length,
+      period: newest && oldest ? { from: oldest.finishedAt, to: newest.finishedAt } : null,
       attribution: LEETIFY_ATTRIBUTION,
       fetchedAt: this.now().toISOString(),
     };

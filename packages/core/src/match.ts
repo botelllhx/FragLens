@@ -1,36 +1,16 @@
-import type { RecentForm } from '@fraglens/analysis';
+import type {
+  MapPerformance,
+  MatchStats,
+  Outcome,
+  PerformanceBlock,
+  PerformanceSummary,
+  PeriodComparison,
+  RecentForm,
+  StreakSummary,
+} from '@fraglens/analysis';
 
-export type MatchOutcome = 'win' | 'loss' | 'tie';
-
-export interface PlayerMatchStats {
-  kills: number;
-  deaths: number;
-  assists: number;
-  headshotKills: number;
-  damage: number;
-  roundsPlayed: number;
-  roundsWon: number;
-  roundsLost: number;
-  roundsSurvived: number;
-  mvps: number;
-  multiKills: { twoKills: number; threeKills: number; fourKills: number; fiveKills: number };
-  flashAssists: number;
-  utility: {
-    flashbangsThrown: number;
-    flashbangsHitEnemies: number;
-    heGrenadesThrown: number;
-    molotovsThrown: number;
-    smokesThrown: number;
-  };
-  trades: {
-    tradeKillOpportunities: number;
-    tradeKillAttempts: number;
-    tradeKills: number;
-    tradedDeathOpportunities: number;
-    tradedDeathAttempts: number;
-    tradedDeaths: number;
-  };
-}
+export type MatchOutcome = Outcome;
+export type PlayerMatchStats = MatchStats;
 
 /** Métricas próprias da Leetify, repassadas sem alteração (exigência das diretrizes da Leetify). */
 export interface LeetifyMatchRatings {
@@ -111,4 +91,31 @@ export interface MatchHistory {
   attribution: string;
   /** ISO 8601. */
   fetchedAt: string;
+}
+
+/** Campos comuns aos relatórios calculados a partir das partidas. */
+export interface PerformanceReportBase {
+  steamId64: string;
+  playerName: string;
+  ranks: PlayerRanks;
+  /** Partidas consideradas, depois do limite. */
+  sampleSize: number;
+  /** Datas (ISO 8601) da partida mais antiga e da mais recente consideradas. */
+  period: { from: string; to: string } | null;
+  attribution: string;
+  /** ISO 8601. */
+  fetchedAt: string;
+}
+
+export interface MapReport extends PerformanceReportBase {
+  /** Mapas com menos partidas que isso são marcados como amostra pequena. */
+  minMapSample: number;
+  maps: MapPerformance[];
+}
+
+export interface ProgressReport extends PerformanceReportBase {
+  summary: PerformanceSummary;
+  comparison: PeriodComparison;
+  streaks: StreakSummary;
+  blocks: PerformanceBlock[];
 }

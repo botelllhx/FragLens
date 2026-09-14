@@ -4,8 +4,10 @@ import type { Database } from '@fraglens/db';
 import type { EnvSource, Logger } from '@fraglens/shared';
 import { registerCacheCommand } from './commands/cache.js';
 import { registerDoctorCommand } from './commands/doctor.js';
+import { registerMapsCommand } from './commands/maps.js';
 import { registerMatchesCommand } from './commands/matches.js';
 import { registerProfileCommand } from './commands/profile.js';
+import { registerProgressCommand } from './commands/progress.js';
 import { registerRefreshCommand } from './commands/refresh.js';
 import { translateCommanderMessage, translateHelp } from './i18n.js';
 import type { CliIo } from './io.js';
@@ -70,6 +72,8 @@ export function createProgram(ctx: CommandContext): Command {
 
   registerProfileCommand(program, ctx);
   registerMatchesCommand(program, ctx);
+  registerMapsCommand(program, ctx);
+  registerProgressCommand(program, ctx);
   registerRefreshCommand(program, ctx);
   registerCacheCommand(program, ctx);
   registerDoctorCommand(program, ctx);

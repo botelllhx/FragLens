@@ -194,6 +194,114 @@ Principais campos:
   • O perfil na Leetify também pode estar configurado como privado.
 ```
 
+## `fraglens maps <jogador>`
+
+Desempenho por mapa com as partidas da Leetify: partidas, vitórias-derrotas-empates, win rate, K/D, ADR, HS% e médias de kills e mortes por partida.
+
+| Opção         | Efeito                                                        |
+| ------------- | ------------------------------------------------------------- |
+| `--limit <n>` | Partidas mais recentes consideradas, de 1 a 100 (padrão: 100) |
+
+```text
+MAPAS
+
+Mapa     Partidas    V-D-E  Vitórias   K/D   ADR    HS%  Kills méd.  Mortes méd.
+Dust2          47  23-18-6     48,9%  0,76  65,9  37,9%        11,9         15,6
+Mirage         24  12-12-0     50,0%  0,75  61,3  36,9%        11,0         14,5
+Cache*          4    2-2-0     50,0%  1,26  77,1  44,1%        17,0         13,5
+
+* Menos de 5 partidas no mapa: amostra pequena, interprete com cuidado.
+```
+
+- Ordenação: do mapa mais jogado para o menos jogado.
+- `*` marca mapas com menos de 5 partidas (`lowSample: true` no JSON).
+- Com `--json`: `{ steamId64, playerName, ranks, sampleSize, period: {from, to}, minMapSample, maps: [...], attribution, fetchedAt }`.
+
+Fórmulas: [metrics.md](metrics.md#por-mapa-fraglens-maps).
+
+## `fraglens progress <jogador>`
+
+Resumo do período e tendências, com as partidas da Leetify.
+
+| Opção         | Efeito                                                        |
+| ------------- | ------------------------------------------------------------- |
+| `--limit <n>` | Partidas mais recentes consideradas, de 1 a 100 (padrão: 100) |
+
+Seções:
+
+| Seção              | Conteúdo                                                                                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Resumo             | Vitórias/derrotas/empates, win rate, K/D, KDA, ADR, HS%, kills/mortes/assistências por round, rounds vencidos e sobrevividos, multi-kills, trades e utilitários             |
+| Recente × anterior | Win rate, K/D, ADR e HS% das **10 partidas mais recentes** contra as **20 anteriores**, com variação: ▲ subiu, ▼ caiu, → estável. Exige ao menos 5 partidas em cada período |
+| Sequências         | Sequência atual e maiores sequências de vitórias e de derrotas (empates interrompem)                                                                                        |
+| Evolução           | Blocos de 10 partidas consecutivas, do mais antigo ao mais recente, com barra de win rate, K/D, ADR e HS%                                                                   |
+
+```text
+RECENTE × ANTERIOR
+
+Métrica   Últimas 10  20 anteriores  Variação
+Vitórias       70,0%          30,0%  ▲ +40,0 p.p.
+K/D             0,88           0,78  ▲ +0,10
+ADR             66,6           67,7  → -1,1
+HS%            35,3%          39,3%  ▼ -4,0 p.p.
+```
+
+Com `--json`:
+
+```json
+{
+  "steamId64": "76561198012345678",
+  "playerName": "Jogador",
+  "sampleSize": 100,
+  "period": { "from": "2026-05-15T19:02:00.000Z", "to": "2026-09-13T21:02:56.000Z" },
+  "summary": {
+    "matches": 100,
+    "wins": 47,
+    "losses": 43,
+    "ties": 10,
+    "winRate": 47,
+    "killDeathRatio": 0.79,
+    "…": "…"
+  },
+  "comparison": {
+    "recentMatches": 10,
+    "previousMatches": 20,
+    "sufficient": true,
+    "metrics": {
+      "winRate": { "recent": 70, "previous": 30, "delta": 40, "direction": "up" },
+      "killDeathRatio": { "recent": 0.88, "previous": 0.78, "delta": 0.1, "direction": "up" },
+      "averageDamagePerRound": {
+        "recent": 66.6,
+        "previous": 67.7,
+        "delta": -1.1,
+        "direction": "stable"
+      },
+      "headshotPercentage": { "recent": 35.3, "previous": 39.3, "delta": -4, "direction": "down" }
+    }
+  },
+  "streaks": {
+    "current": { "outcome": "loss", "length": 1 },
+    "longestWinStreak": 4,
+    "longestLossStreak": 4
+  },
+  "blocks": [
+    {
+      "from": "…",
+      "to": "…",
+      "matches": 10,
+      "complete": true,
+      "winRate": 50,
+      "killDeathRatio": 0.79,
+      "…": "…"
+    }
+  ],
+  "attribution": "Dados fornecidos pela Leetify (Data Provided by Leetify)",
+  "fetchedAt": "2026-09-14T18:48:00.000Z"
+}
+```
+
+Valores que não podem ser calculados (ex.: HS% sem kills) são `null` no JSON e `—` no terminal. Fórmulas e limites de variação: [metrics.md](metrics.md#tendências-fraglens-progress).
+
 ## `fraglens refresh <jogador>`
 
 Busca o perfil na Steam e grava no banco, ignorando o cache. **Requer `DATABASE_URL`.**
