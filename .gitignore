@@ -1,0 +1,19 @@
+# Dependências e builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+
+# Demos de CS2 (processadas e descartadas)
+*.dem
+*.dem.bz2
+
+# Sistema e editores
+.DS_Store
+Thumbs.db
+*.log

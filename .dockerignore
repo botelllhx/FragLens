@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.env
+.env.*
+.git
+docs
+*.dem
+*.dem.bz2

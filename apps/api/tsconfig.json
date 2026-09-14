@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "customConditions": ["@fraglens/source"]
+  },
+  "include": ["src", "test"]
+}

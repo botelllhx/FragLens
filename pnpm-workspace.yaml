@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Pacotes autorizados a executar scripts de instalação.
+onlyBuiltDependencies:
+  - esbuild

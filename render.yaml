@@ -1,0 +1,21 @@
+# Blueprint do Render (plano gratuito). Ver docs/decisions/0003-hospedagem-custo-zero.md.
+# O banco fica no Neon (gratuito): informe DATABASE_URL no painel do Render.
+services:
+  - type: web
+    name: fraglens-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: STEAM_API_KEY
+        sync: false
+      - key: LEETIFY_API_KEY
+        sync: false

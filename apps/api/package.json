@@ -1,0 +1,21 @@
+{
+  "name": "@fraglens/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API HTTP do FragLens.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@fraglens/shared": "workspace:*",
+    "fastify": "^5.12.4"
+  }
+}

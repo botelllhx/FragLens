@@ -1,0 +1,268 @@
+# FragLens
+
+**Inteligência de jogadores de Counter-Strike 2 direto no terminal.**
+
+O FragLens analisa jogadores de CS2 a partir de uma Steam ID ou URL de perfil: busca dados públicos, calcula métricas próprias, identifica tendências e (opcionalmente) gera uma interpretação com IA. Tudo pelo terminal, sem interface web.
+
+```bash
+fraglens analyze https://steamcommunity.com/id/usuario
+```
+
+> **Status:** em desenvolvimento — **Fase 1 (bootstrap) concluída**. Os comandos de análise ainda não existem; veja o [roadmap](#15-roadmap).
+
+---
+
+## Sumário
+
+1. [O que é o FragLens](#1-o-que-é-o-fraglens)
+2. [Arquitetura](#2-arquitetura)
+3. [Instalação](#3-instalação)
+4. [Configuração](#4-configuração)
+5. [Como criar a chave da Steam API](#5-como-criar-a-chave-da-steam-api)
+6. [Executando localmente](#6-executando-localmente)
+7. [Usando a CLI](#7-usando-a-cli)
+8. [Executando a API](#8-executando-a-api)
+9. [Testes e qualidade](#9-testes-e-qualidade)
+10. [Docker](#10-docker)
+11. [Deploy](#11-deploy)
+12. [Limitações conhecidas](#12-limitações-conhecidas)
+13. [Fontes de dados](#13-fontes-de-dados)
+14. [Licenças das dependências](#14-licenças-das-dependências)
+15. [Roadmap](#15-roadmap)
+
+---
+
+## 1. O que é o FragLens
+
+Uma pequena plataforma de _player intelligence_ para CS2, acessível inicialmente pela linha de comando. Princípio central:
+
+> **Código calcula. IA interpreta.**
+
+- **Dados** vêm de fontes externas (Steam, Leetify, demos).
+- **Métricas** são calculadas de forma determinística pelo FragLens.
+- **Interpretação** é gerada pela IA, somente a partir das métricas calculadas — e é opcional.
+
+## 2. Arquitetura
+
+Monorepo pnpm com interfaces finas sobre uma camada de domínio compartilhada:
+
+```text
+CLI ───────┐
+           ├── core (serviços de aplicação) ──► steam · sources · analysis · ai · demos · db
+API ───────┘
+```
+
+| Pacote               | Responsabilidade                     | Status                |
+| -------------------- | ------------------------------------ | --------------------- |
+| `apps/cli`           | Comando `fraglens` (Commander)       | Esqueleto + `doctor`  |
+| `apps/api`           | API HTTP (Fastify)                   | Esqueleto + `/health` |
+| `packages/shared`    | Configuração, logs, erros            | ✅                    |
+| `packages/contracts` | Schemas compartilhados CLI/API       | Fase 9                |
+| `packages/core`      | Serviços de domínio                  | Fase 2+               |
+| `packages/steam`     | Resolver de Steam ID e cliente Steam | Fase 2                |
+| `packages/sources`   | Adaptador Leetify                    | Fase 3                |
+| `packages/db`        | Prisma 7 + PostgreSQL                | Fase 4                |
+| `packages/analysis`  | Motor de métricas                    | Fase 5                |
+| `packages/demos`     | Parser de demos                      | Fase 6                |
+| `packages/ai`        | Provedores de IA                     | Fase 8                |
+
+Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md) e [docs/decisions/](docs/decisions/).
+
+## 3. Instalação
+
+Requisitos para desenvolvimento:
+
+- Node.js **22.18 ou superior**
+- pnpm **10** (`npm install --global pnpm@10`)
+- Docker (opcional, para PostgreSQL local e imagem da API)
+
+```bash
+git clone <url-do-repositorio> fraglens
+cd fraglens
+pnpm install
+```
+
+> A instalação global pelo npm (`npm install -g fraglens`) estará disponível na Fase 10.
+
+## 4. Configuração
+
+```bash
+cp .env.example .env
+```
+
+| Variável                  | Obrigatória      | Descrição                                        |
+| ------------------------- | ---------------- | ------------------------------------------------ |
+| `STEAM_API_KEY`           | Sim (modo local) | Chave da Steam Web API                           |
+| `DATABASE_URL`            | Sim (modo local) | Conexão PostgreSQL                               |
+| `LEETIFY_API_KEY`         | Não              | Sem chave a Leetify funciona com limites menores |
+| `STEAM_PROFILE_CACHE_TTL` | Não              | Cache do perfil Steam em segundos (padrão 86400) |
+| `AI_PROVIDER`             | Não              | `none` por enquanto                              |
+| `PORT`, `HOST`            | Não              | Endereço da API (padrão `0.0.0.0:3000`)          |
+| `LOG_LEVEL`               | Não              | `info` por padrão                                |
+
+O arquivo `.env` nunca deve ser versionado (já está no `.gitignore`).
+
+## 5. Como criar a chave da Steam API
+
+1. Entre na sua conta Steam em https://steamcommunity.com/dev/apikey
+2. Informe um nome de domínio (pode ser `localhost` para uso pessoal) e aceite os termos.
+3. Copie a chave para `STEAM_API_KEY` no `.env`.
+
+Regras importantes dos termos da Steam: a chave é pessoal e não pode ser compartilhada; o limite é de 100.000 chamadas por dia.
+
+## 6. Executando localmente
+
+```bash
+# Banco de dados local (necessário a partir da Fase 4)
+docker compose up -d postgres
+
+# CLI a partir do código-fonte
+pnpm dev:cli doctor
+
+# API em modo desenvolvimento (recarrega ao salvar)
+pnpm dev:api
+```
+
+## 7. Usando a CLI
+
+Disponível hoje:
+
+```bash
+fraglens --help        # ajuda
+fraglens --version     # versão
+fraglens doctor        # diagnóstico do ambiente
+fraglens doctor --json # diagnóstico em JSON
+```
+
+Exemplo:
+
+```text
+FRAGLENS · DIAGNÓSTICO
+
+✓ Node.js 22.18.0
+✓ Configuração
+✓ Chave da Steam API configurada
+✓ Banco de dados configurado
+⚠ Chave da Leetify — não configurada (LEETIFY_API_KEY), funciona sem chave, com limites menores
+⚠ Provedor de IA — não configurado, as análises serão geradas sem IA
+
+Sistema pronto, com avisos.
+```
+
+Opções globais:
+
+| Opção       | Efeito                                                           |
+| ----------- | ---------------------------------------------------------------- |
+| `--json`    | Escreve somente JSON no stdout (logs e avisos vão para o stderr) |
+| `--verbose` | Exibe detalhes técnicos em caso de erro                          |
+
+Códigos de saída: `0` sucesso · `1` falha · `2` uso incorreto.
+
+Comandos planejados: `analyze`, `profile`, `matches`, `maps`, `progress`, `compare`, `refresh`, `cache`, `config` — ver [roadmap](#15-roadmap).
+
+## 8. Executando a API
+
+```bash
+pnpm build
+node apps/api/dist/server.js
+curl http://localhost:3000/health
+```
+
+Endpoints disponíveis hoje:
+
+| Método | Rota      | Descrição       |
+| ------ | --------- | --------------- |
+| GET    | `/health` | Status e versão |
+
+## 9. Testes e qualidade
+
+```bash
+pnpm lint          # ESLint com regras baseadas em tipos
+pnpm typecheck     # TypeScript strict em todos os pacotes
+pnpm test          # Vitest
+pnpm build         # compila todos os pacotes
+pnpm format:check  # Prettier
+pnpm check         # lint + typecheck + test + build
+```
+
+Os testes não dependem de serviços externos: APIs externas são sempre simuladas.
+
+## 10. Docker
+
+```bash
+docker build -t fraglens-api .
+docker run --rm -p 3000:3000 --env-file .env fraglens-api
+
+# ou API + PostgreSQL juntos
+docker compose up --build
+```
+
+## 11. Deploy
+
+Objetivo: **custo zero** ([ADR 0003](docs/decisions/0003-hospedagem-custo-zero.md)).
+
+```text
+GitHub → Render (plano Free, Dockerfile) → API Node → PostgreSQL no Neon (plano Free)
+```
+
+1. Crie um banco gratuito em https://neon.com e copie a connection string.
+2. No Render, crie um _Blueprint_ apontando para o repositório (usa o `render.yaml`).
+3. Preencha `DATABASE_URL`, `STEAM_API_KEY` e, se quiser, `LEETIFY_API_KEY`.
+
+Atenção: no plano gratuito do Render a API "dorme" após 15 minutos sem uso e leva cerca de 1 minuto para responder na primeira requisição.
+
+## 12. Limitações conhecidas
+
+- A Steam **não fornece** histórico de partidas, estatísticas por partida nem Premier rating.
+- Dados de desempenho dependem da **Leetify**: jogadores que ela não acompanha ficam sem estatísticas.
+- A Leetify pede para **não armazenar** seus dados: o FragLens não guarda nenhum dado da Leetify (nem em cache) e não tem histórico além das últimas 100 partidas.
+- **Premier rating** pode estar indisponível (campo nulo na Leetify).
+- **K/D por lado (T/CT) e clutches** só serão possíveis com demos (Fase 6).
+- Demos do matchmaking da Valve **não** são baixadas automaticamente (exigiriam credenciais de terceiros).
+- FACEIT está fora do escopo ([ADR 0002](docs/decisions/0002-faceit-fora-do-escopo.md)).
+
+Detalhes: [docs/technical-research.md](docs/technical-research.md).
+
+## 13. Fontes de dados
+
+| Fonte                                                              | Uso                                         | Termos                                                                                        |
+| ------------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [Steam Web API](https://partner.steamgames.com/doc/webapi)         | Steam ID, perfil, banimentos, horas jogadas | [Steam Web API Terms](https://steamcommunity.com/dev/apiterms)                                |
+| [Leetify Public API](https://api-public-docs.cs-prod.leetify.com/) | Premier, partidas e estatísticas            | [Diretrizes para desenvolvedores](https://leetify.com/blog/leetify-api-developer-guidelines/) |
+| Demos `.dem` do usuário                                            | Estatísticas avançadas (Fase 6)             | —                                                                                             |
+
+_Dados de desempenho fornecidos pela Leetify (Data Provided by Leetify). O FragLens não é afiliado à Valve nem à Leetify._
+
+## 14. Licenças das dependências
+
+Todas as dependências de execução atuais usam licença MIT:
+
+| Dependência | Licença |
+| ----------- | ------- |
+| commander   | MIT     |
+| fastify     | MIT     |
+| picocolors  | ISC     |
+| pino        | MIT     |
+| zod         | MIT     |
+
+Ferramentas de desenvolvimento (TypeScript: Apache-2.0; ESLint, Prettier, Vitest, tsx: MIT). A tabela será atualizada a cada fase.
+
+## 15. Roadmap
+
+| Fase | Entrega                                                       | Status |
+| ---- | ------------------------------------------------------------- | ------ |
+| 0    | Pesquisa técnica                                              | ✅     |
+| 1    | Bootstrap: monorepo, TypeScript, lint, testes, Docker, README | ✅     |
+| 2    | Resolver de Steam ID + `fraglens profile`                     | ⏳     |
+| 3    | Integração Leetify + `fraglens matches`                       | ⏳     |
+| 4    | Banco de dados (Prisma 7 + PostgreSQL)                        | ⏳     |
+| 5    | Motor de métricas determinísticas                             | ⏳     |
+| 6    | Processamento de demos enviadas pelo usuário                  | ⏳     |
+| 7    | `fraglens analyze --no-ai`                                    | ⏳     |
+| 8    | Análise com IA                                                | ⏳     |
+| 9    | API HTTP `/v1`                                                | ⏳     |
+| 10   | CLI remota (`npm install -g fraglens`)                        | ⏳     |
+| 11   | Deploy Render + Neon                                          | ⏳     |
+| 12   | Polimento: erros, logs, cache, docs, desempenho               | ⏳     |
+
+Futuro: servidor MCP, dashboard Next.js, vínculo opcional de conta por share code.

@@ -1,0 +1,24 @@
+{
+  "name": "@fraglens/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Configuração, logs e erros compartilhados entre os pacotes do FragLens.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "@fraglens/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "pino": "^10.3.1",
+    "zod": "^4.6.5"
+  }
+}

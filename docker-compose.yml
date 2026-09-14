@@ -1,0 +1,35 @@
+# Ambiente local de desenvolvimento. As credenciais abaixo são apenas para uso local.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: fraglens
+      POSTGRES_PASSWORD: fraglens
+      POSTGRES_DB: fraglens
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fraglens -d fraglens']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - '3000:3000'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://fraglens:fraglens@postgres:5432/fraglens
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
