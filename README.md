@@ -52,19 +52,19 @@ CLI ───────┐
 API ───────┘
 ```
 
-| Pacote               | Responsabilidade                                               | Status                                                                 |
-| -------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `apps/cli`           | Comando `fraglens` (Commander)                                 | `profile`, `matches`, `maps`, `progress`, `refresh`, `cache`, `doctor` |
-| `apps/api`           | API HTTP (Fastify)                                             | Esqueleto + `/health`                                                  |
-| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente             | ✅                                                                     |
-| `packages/contracts` | Schemas compartilhados CLI/API                                 | Fase 9                                                                 |
-| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas   | ✅ (cresce a cada fase)                                                |
-| `packages/steam`     | Cliente da Steam Web API                                       | ✅                                                                     |
-| `packages/sources`   | Cliente da Leetify Public API                                  | ✅                                                                     |
-| `packages/db`        | Prisma 7 + PostgreSQL: cache e histórico do perfil Steam, jobs | ✅                                                                     |
-| `packages/analysis`  | Motor de métricas (funções puras): resumo, mapas, tendências   | ✅                                                                     |
-| `packages/demos`     | Parser de demos                                                | Fase 6                                                                 |
-| `packages/ai`        | Provedores de IA                                               | Fase 8                                                                 |
+| Pacote               | Responsabilidade                                               | Status                                                                            |
+| -------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `apps/cli`           | Comando `fraglens` (Commander)                                 | `analyze`, `profile`, `matches`, `maps`, `progress`, `refresh`, `cache`, `doctor` |
+| `apps/api`           | API HTTP (Fastify)                                             | Esqueleto + `/health`                                                             |
+| `packages/shared`    | Configuração, logs, erros, cliente HTTP resiliente             | ✅                                                                                |
+| `packages/contracts` | Schemas compartilhados CLI/API                                 | Fase 9                                                                            |
+| `packages/core`      | Domínio: resolver de Steam ID, serviços de perfil e partidas   | ✅ (cresce a cada fase)                                                           |
+| `packages/steam`     | Cliente da Steam Web API                                       | ✅                                                                                |
+| `packages/sources`   | Cliente da Leetify Public API                                  | ✅                                                                                |
+| `packages/db`        | Prisma 7 + PostgreSQL: cache e histórico do perfil Steam, jobs | ✅                                                                                |
+| `packages/analysis`  | Motor de métricas (funções puras): resumo, mapas, tendências   | ✅                                                                                |
+| `packages/demos`     | Parser de demos                                                | Fase 6                                                                            |
+| `packages/ai`        | Provedores de IA                                               | Fase 8                                                                            |
 
 Detalhes e decisões: [docs/technical-research.md](docs/technical-research.md), [docs/metrics.md](docs/metrics.md), [docs/database.md](docs/database.md) e [docs/decisions/](docs/decisions/).
 
